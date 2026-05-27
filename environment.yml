@@ -1,0 +1,32 @@
+name: voicegen
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch=2.1.2
+  - torchaudio=2.1.2
+  - pytorch-cuda=11.8
+  - ffmpeg=6.0
+  - pip:
+      - PySide6==6.6.3
+      - demucs==4.0.1
+      - deepfilternet==0.5.6
+      - silero-vad
+      - librosa>=0.10
+      - soundfile>=0.12
+      - pydub>=0.25
+      - ffmpeg-python>=0.2
+      - pedalboard==0.9.12
+      - openai-whisper
+      - resemblyzer
+      - transliterate
+      - phonemizer
+      - jiwer
+      - numpy>=1.24,<2.0
+      - scipy>=1.11
+      - tqdm
+      - PyYAML
+      - coqui-tts>=0.24
