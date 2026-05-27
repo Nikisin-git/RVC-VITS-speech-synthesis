@@ -1,5 +1,7 @@
 # Если ставите без conda, предварительно установите PyTorch с CUDA:
-# pip install torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+# pip install torch==2.4.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu118
+# Версия 2.1.2 имеет баг fbgemm.dll на Windows (Ordinal 904 not found) —
+# pytorch/pytorch#131662, поэтому минимум 2.4.0.
 
 PySide6==6.6.3
 demucs==4.0.1
