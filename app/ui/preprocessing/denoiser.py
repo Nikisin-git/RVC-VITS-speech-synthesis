@@ -16,7 +16,7 @@ from app.workers.base_worker import ProcessWorker
 
 class DenoiserWindow(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent, flags=Qt.Window)
+        super().__init__(parent, Qt.Window)
         self.setWindowTitle("Шумоподавление (DeepFilterNet 3)")
         self.resize(640, 420)
 

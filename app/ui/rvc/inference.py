@@ -84,7 +84,7 @@ class _PostprocessTabs(QTabWidget):
 
 class RvcInferenceWindow(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent, flags=Qt.Window)
+        super().__init__(parent, Qt.Window)
         self.setWindowTitle("Преобразование голоса (RVC)")
         self.resize(900, 780)
 

@@ -23,7 +23,7 @@ from app.workers.progress_tracker import ProgressState
 
 class RvcTrainWindow(QWidget):
     def __init__(self, parent: QWidget | None = None, env: EnvReport | None = None) -> None:
-        super().__init__(parent, flags=Qt.Window)
+        super().__init__(parent, Qt.Window)
         self.setWindowTitle("Обучение голосовой модели (RVC)")
         self.resize(720, 720)
         self._env = env

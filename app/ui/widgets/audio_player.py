@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider, QWidget, Qt
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider, QWidget
 
 
 class AudioPlayer(QWidget):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from app.config import SCRIPTS_DIR
@@ -15,7 +16,7 @@ from app.workers.base_worker import ProcessWorker
 
 class VocalRemoverWindow(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent, flags=__import__("PySide6.QtCore", fromlist=["Qt"]).Qt.Window)
+        super().__init__(parent, Qt.Window)
         self.setWindowTitle("Отделение вокала от инструментала")
         self.resize(640, 420)
 

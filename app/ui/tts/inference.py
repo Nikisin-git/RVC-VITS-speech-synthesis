@@ -21,7 +21,7 @@ from app.workers.base_worker import ProcessWorker
 
 class TtsInferenceWindow(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent, flags=Qt.Window)
+        super().__init__(parent, Qt.Window)
         self.setWindowTitle("Преобразование текста в речь (VITS)")
         self.resize(840, 720)
 

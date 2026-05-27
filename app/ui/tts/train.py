@@ -31,7 +31,7 @@ class TtsTrainWindow(QWidget):
     _hint_shown = False
 
     def __init__(self, parent: QWidget | None = None, env: EnvReport | None = None) -> None:
-        super().__init__(parent, flags=Qt.Window)
+        super().__init__(parent, Qt.Window)
         self.setWindowTitle("Обучение TTS-модели")
         self.resize(820, 720)
         self._env = env
