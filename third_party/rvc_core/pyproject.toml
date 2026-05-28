@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rvc_core"
+version = "0.1.0+rvc-7ef1986"
+description = "Vendored RVC-Project core without Gradio, exposed as CLI modules"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+    "faiss-cpu",
+    "fairseq",
+    "torch>=2.1",
+    "torchaudio",
+    "torchcrepe",
+    "numpy",
+    "scipy",
+    "librosa",
+    "soundfile",
+    "praat-parselmouth",
+    "pyworld",
+    "tensorboard",
+    "tqdm",
+]
+
+[tool.setuptools.packages.find]
+include = ["rvc_core*"]
+
+[tool.setuptools.package-data]
+"rvc_core._vendored" = [
+    "**/*.py",
+    "**/*.json",
+    "**/*.yaml",
+    "**/*.txt",
+]

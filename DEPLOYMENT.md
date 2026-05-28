@@ -244,9 +244,47 @@ dependencies:
 
 ```bash
 pip install -e third_party/rvc_core
+pip install faiss-cpu fairseq torchcrepe praat-parselmouth pyworld
 ```
 
-#### Шаг 5. Запуск приложения
+В `third_party/rvc_core/` вендорено ядро [RVC-Project](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) (commit `7ef1986`) без Gradio-обёртки, плюс CLI-точки `rvc_core.preprocess`, `rvc_core.extract_f0`, `rvc_core.extract_feature`, `rvc_core.train`, `rvc_core.train_index`, `rvc_core.infer_cli`.
+
+#### Шаг 5. Скачайте предобученные веса RVC
+
+Без них обучение пойдёт «с нуля» (очень долго и плохо), а инференс не запустится вообще. Скачайте из официального HuggingFace-репозитория:
+
+```bash
+# В корне проекта:
+mkdir -p third_party/rvc_core/rvc_core/_vendored/assets/{hubert,rmvpe,pretrained_v2}
+
+# HuBERT base (универсальный feature extractor)
+curl -L -o third_party/rvc_core/rvc_core/_vendored/assets/hubert/hubert_base.pt \
+    https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/hubert_base.pt
+
+# RMVPE (нейросетевой F0)
+curl -L -o third_party/rvc_core/rvc_core/_vendored/assets/rmvpe/rmvpe.pt \
+    https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/rmvpe.pt
+
+# Pretrained v2 (выберите частоту — обычно 40k для речи)
+for sr in 32k 40k 48k; do
+  curl -L -o "third_party/rvc_core/rvc_core/_vendored/assets/pretrained_v2/f0G${sr}.pth" \
+      "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0G${sr}.pth"
+  curl -L -o "third_party/rvc_core/rvc_core/_vendored/assets/pretrained_v2/f0D${sr}.pth" \
+      "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0D${sr}.pth"
+done
+```
+
+Суммарно ~2 ГБ. Качайте только нужную частоту (40k достаточно для большинства задач), чтобы сэкономить трафик.
+
+Можно положить ассеты в другое место и указать через переменную окружения:
+
+```bash
+export VOICEGEN_RVC_ASSETS=/path/to/rvc_assets
+```
+
+Структура каталога `VOICEGEN_RVC_ASSETS` должна совпадать с `assets/`: подпапки `hubert/`, `rmvpe/`, `pretrained_v2/`.
+
+#### Шаг 6. Запуск приложения
 
 ```bash
 python -m app.main
