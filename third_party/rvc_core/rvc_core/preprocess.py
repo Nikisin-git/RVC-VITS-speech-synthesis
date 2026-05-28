@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import multiprocessing
 import runpy
+import shutil
 import sys
 from pathlib import Path
 
@@ -12,6 +13,25 @@ import rvc_core  # noqa: F401
 from rvc_core._workspace import chdir, copy_artifacts, vendored_exp_dir, vendored_workspace
 
 _SR_MAP = {"32k": 32000, "40k": 40000, "48k": 48000}
+
+
+def _reset_if_sr_changed(exp_dir: Path, sr: str) -> None:
+    """Wipe the experiment directory if the previous run used a different sr.
+
+    Without this, switching from --sr 32k to --sr 40k inside the same
+    experiment leaves 32k wavs/features/config behind and the 40k pretrained
+    weights fail to load with 'size mismatch' errors.
+    """
+    stamp = exp_dir / "_sr.stamp"
+    prev = stamp.read_text(encoding="utf-8").strip() if stamp.exists() else None
+    if prev and prev != sr:
+        print(f"[rvc_core.preprocess] sr changed ({prev} -> {sr}), clearing {exp_dir}", flush=True)
+        for child in exp_dir.iterdir():
+            if child.is_dir():
+                shutil.rmtree(child, ignore_errors=True)
+            else:
+                child.unlink(missing_ok=True)
+    stamp.write_text(sr, encoding="utf-8")
 
 
 def main() -> int:
@@ -26,6 +46,7 @@ def main() -> int:
     args = p.parse_args()
 
     exp_dir = vendored_exp_dir(args.exp_name)
+    _reset_if_sr_changed(exp_dir, args.sr)
     sr_hz = _SR_MAP[args.sr]
     upstream_script = vendored_workspace() / "infer" / "modules" / "train" / "preprocess.py"
 

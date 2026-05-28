@@ -82,10 +82,10 @@ def _write_filelist(exp_dir: Path, sr: str, version: str, has_f0: bool, spk_id: 
 
 
 def _write_config(exp_dir: Path, sr: str, version: str) -> None:
+    """Always overwrite config.json so a switched sr/version doesn't leak from
+    a previous run inside the same experiment directory."""
     src = _paths.vendored_config(sr, version)
     dst = exp_dir / "config.json"
-    if dst.exists():
-        return
     shutil.copy2(src, dst)
 
 
