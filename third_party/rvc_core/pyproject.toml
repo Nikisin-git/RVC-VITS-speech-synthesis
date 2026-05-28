@@ -19,6 +19,8 @@ dependencies = [
     "scipy",
     "librosa",
     "soundfile",
+    "av",                       # PyAV, used by infer/lib/audio.py
+    "numba",                    # used by f0 extraction
     "praat-parselmouth",
     "pyworld",
     "tensorboard",
