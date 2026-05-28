@@ -251,10 +251,11 @@ pip install faiss-cpu fairseq torchcrepe praat-parselmouth pyworld
 
 #### Шаг 5. Скачайте предобученные веса RVC
 
-Без них обучение пойдёт «с нуля» (очень долго и плохо), а инференс не запустится вообще. Скачайте из официального HuggingFace-репозитория:
+Без них обучение пойдёт «с нуля» (очень долго и плохо), а инференс не запустится вообще. Скачайте из официального HuggingFace-репозитория.
+
+**Linux / macOS (bash):**
 
 ```bash
-# В корне проекта:
 mkdir -p third_party/rvc_core/rvc_core/_vendored/assets/{hubert,rmvpe,pretrained_v2}
 
 # HuBERT base (универсальный feature extractor)
@@ -274,12 +275,30 @@ for sr in 32k 40k 48k; do
 done
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+$assets = "third_party\rvc_core\rvc_core\_vendored\assets"
+New-Item -ItemType Directory -Force -Path "$assets\hubert", "$assets\rmvpe", "$assets\pretrained_v2" | Out-Null
+$base = "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main"
+
+curl.exe -L -o "$assets\hubert\hubert_base.pt" "$base/hubert_base.pt"
+curl.exe -L -o "$assets\rmvpe\rmvpe.pt"        "$base/rmvpe.pt"
+foreach ($sr in @("32k","40k","48k")) {
+    curl.exe -L -o "$assets\pretrained_v2\f0G$sr.pth" "$base/pretrained_v2/f0G$sr.pth"
+    curl.exe -L -o "$assets\pretrained_v2\f0D$sr.pth" "$base/pretrained_v2/f0D$sr.pth"
+}
+```
+
+> Команды **не работают** в обычном `cmd.exe` — там нет `for ... in (); do` с переносами строк и `${var}`. Используйте PowerShell или `installer/windows/download_rvc_weights.bat`.
+
 Суммарно ~2 ГБ. Качайте только нужную частоту (40k достаточно для большинства задач), чтобы сэкономить трафик.
 
 Можно положить ассеты в другое место и указать через переменную окружения:
 
 ```bash
-export VOICEGEN_RVC_ASSETS=/path/to/rvc_assets
+export VOICEGEN_RVC_ASSETS=/path/to/rvc_assets   # Linux/macOS
+$env:VOICEGEN_RVC_ASSETS = "C:\path\to\rvc_assets"  # PowerShell
 ```
 
 Структура каталога `VOICEGEN_RVC_ASSETS` должна совпадать с `assets/`: подпапки `hubert/`, `rmvpe/`, `pretrained_v2/`.
