@@ -20,27 +20,45 @@ def _write_filelist(exp_dir: Path, sr: str, version: str, has_f0: bool, spk_id: 
     feat = exp_dir / ("3_feature256" if version == "v1" else "3_feature768")
     fea_dim = 256 if version == "v1" else 768
 
+    def _stems(d: Path, suffix: str) -> dict[str, str]:
+        """Map base stem -> actual filename, stripping common upstream suffixes."""
+        out = {}
+        if not d.exists():
+            return out
+        for p in d.iterdir():
+            if not p.name.lower().endswith(suffix):
+                continue
+            stem = p.name
+            for s in (".wav.npy", ".wav", ".npy"):
+                if stem.endswith(s):
+                    stem = stem[: -len(s)]
+                    break
+            out[stem] = p.name
+        return out
+
+    gt_map = _stems(gt, ".wav")
+    feat_map = _stems(feat, ".npy")
+    print(f"[rvc_core.train] dirs: gt={len(gt_map)} feat={len(feat_map)}", flush=True)
+
     if has_f0:
         f0_dir = exp_dir / "2a_f0"
         f0nsf_dir = exp_dir / "2b-f0nsf"
-        names = (
-            {p.stem for p in gt.glob("*.wav")}
-            & {p.stem for p in feat.glob("*.npy")}
-            & {p.stem for p in f0_dir.iterdir()}
-            & {p.stem for p in f0nsf_dir.iterdir()}
-        )
+        f0_map = _stems(f0_dir, ".npy")
+        f0nsf_map = _stems(f0nsf_dir, ".npy")
+        print(f"[rvc_core.train] dirs: f0={len(f0_map)} f0nsf={len(f0nsf_map)}", flush=True)
+        names = set(gt_map) & set(feat_map) & set(f0_map) & set(f0nsf_map)
     else:
-        names = {p.stem for p in gt.glob("*.wav")} & {p.stem for p in feat.glob("*.npy")}
+        names = set(gt_map) & set(feat_map)
 
     rows = []
     for name in names:
         if has_f0:
             rows.append(
-                f"{gt}/{name}.wav|{feat}/{name}.npy|{f0_dir}/{name}.wav.npy|"
-                f"{f0nsf_dir}/{name}.wav.npy|{spk_id}"
+                f"{gt}/{gt_map[name]}|{feat}/{feat_map[name]}|"
+                f"{f0_dir}/{f0_map[name]}|{f0nsf_dir}/{f0nsf_map[name]}|{spk_id}"
             )
         else:
-            rows.append(f"{gt}/{name}.wav|{feat}/{name}.npy|{spk_id}")
+            rows.append(f"{gt}/{gt_map[name]}|{feat}/{feat_map[name]}|{spk_id}")
 
     mute_root = vendored_workspace() / "logs" / "mute"
     if mute_root.exists():
@@ -129,6 +147,13 @@ def main() -> int:
 
     if args.cancel_flag:
         os.environ["RVC_CANCEL_FLAG"] = str(Path(args.cancel_flag).resolve())
+
+    # Windows PyTorch wheels ship without libuv support; force the legacy TCP
+    # rendezvous transport so torch.distributed.init_process_group works.
+    # See pytorch/pytorch#129070.
+    os.environ.setdefault("USE_LIBUV", "0")
+    os.environ.setdefault("MASTER_ADDR", "127.0.0.1")
+    os.environ.setdefault("MASTER_PORT", "29500")
 
     with chdir(vendored_workspace()):
         sys.argv = argv
