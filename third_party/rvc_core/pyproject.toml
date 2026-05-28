@@ -9,7 +9,9 @@ description = "Vendored RVC-Project core without Gradio, exposed as CLI modules"
 requires-python = ">=3.10,<3.12"
 dependencies = [
     "faiss-cpu",
-    "fairseq",
+    # fairseq deliberately NOT listed: its PyPI sdist is broken on Windows
+    # (missing version.txt) and v0.12.2 hard-pins old protobuf. Install separately:
+    #   pip install git+https://github.com/One-sixth/fairseq.git
     "torch>=2.1",
     "torchaudio",
     "torchcrepe",
