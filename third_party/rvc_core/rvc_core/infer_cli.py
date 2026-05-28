@@ -31,18 +31,15 @@ def main() -> int:
     p.add_argument("--speaker-id", type=int, default=0)
     args = p.parse_args()
 
-    # Upstream looks for assets next to its cwd by default. Point env vars
-    # at our vendored / overridden assets root.
-    assets = _paths.assets_root()
-    os.environ.setdefault("rmvpe_root", str(assets / "rmvpe"))
+    # Upstream's Config and VC class look up assets via paths relative to cwd.
+    # chdir into the vendored tree where assets/, configs/, i18n/ all live.
+    workspace = _paths.VENDORED
+    os.chdir(str(workspace))
+
+    os.environ.setdefault("rmvpe_root", str(workspace / "assets" / "rmvpe"))
     os.environ.setdefault("weight_root", str(Path(args.pth).parent))
     os.environ.setdefault("index_root", str(Path(args.index).parent) if args.index else "")
     os.environ.setdefault("hubert_path", str(_paths.hubert_path()))
-
-    # chdir into the assets parent so upstream's relative loads ("assets/...") work.
-    workspace = assets.parent
-    workspace.mkdir(parents=True, exist_ok=True)
-    os.chdir(str(workspace))
 
     from configs.config import Config  # type: ignore
     from infer.modules.vc.modules import VC  # type: ignore

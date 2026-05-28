@@ -1,19 +1,8 @@
-"""CLI wrapper around upstream `infer/modules/train/train.py`.
-
-Responsibilities:
-- Build `<logs>/filelist.txt` from `0_gt_wavs`, `3_feature768`, `2a_f0`, `2b-f0nsf`.
-- Copy the right config (`configs/v2/<sr>.json`) into `<logs>/config.json`.
-- Build the upstream argv (`-e/-sr/-f0/-bs/-te/-se/-pg/-pd/-l/-c/-sw/-v`).
-- chdir into the workspace and runpy the upstream training entrypoint.
-- Honour a `--cancel-flag` file for soft cancellation by checking it between
-  epochs (best-effort: a hook patches `torch.save` to short-circuit when the
-  flag appears).
-"""
+"""CLI wrapper around upstream `infer/modules/train/train.py`."""
 
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import random
 import runpy
@@ -23,7 +12,7 @@ from pathlib import Path
 
 import rvc_core  # noqa: F401
 from rvc_core import _paths
-from rvc_core._workspace import chdir
+from rvc_core._workspace import chdir, copy_artifacts, vendored_exp_dir, vendored_workspace
 
 
 def _write_filelist(exp_dir: Path, sr: str, version: str, has_f0: bool, spk_id: int = 0) -> None:
@@ -47,15 +36,13 @@ def _write_filelist(exp_dir: Path, sr: str, version: str, has_f0: bool, spk_id: 
     for name in names:
         if has_f0:
             rows.append(
-                f"{gt}/{name}.wav|{feat}/{name}.npy|{exp_dir}/2a_f0/{name}.wav.npy|"
-                f"{exp_dir}/2b-f0nsf/{name}.wav.npy|{spk_id}"
+                f"{gt}/{name}.wav|{feat}/{name}.npy|{f0_dir}/{name}.wav.npy|"
+                f"{f0nsf_dir}/{name}.wav.npy|{spk_id}"
             )
         else:
             rows.append(f"{gt}/{name}.wav|{feat}/{name}.npy|{spk_id}")
 
-    # Upstream appends two "mute" placeholder lines from logs/mute/...; the
-    # vendored tree ships them under _vendored/logs/mute. Use absolute paths.
-    mute_root = rvc_core.VENDORED_PATH / "logs" / "mute"
+    mute_root = vendored_workspace() / "logs" / "mute"
     if mute_root.exists():
         for _ in range(2):
             if has_f0:
@@ -103,9 +90,7 @@ def main() -> int:
     p.add_argument("--cancel-flag")
     args = p.parse_args()
 
-    logs_dir = Path(args.logs_dir).resolve()
-    workspace = logs_dir.parent.parent
-    exp_dir = logs_dir
+    exp_dir = vendored_exp_dir(args.exp_name)
     _write_filelist(exp_dir, args.sr, args.version, bool(args.has_f0))
     _write_config(exp_dir, args.sr, args.version)
 
@@ -124,7 +109,7 @@ def main() -> int:
         pg_arg = str(pg)
         pd_arg = str(pd)
 
-    script = rvc_core.VENDORED_PATH / "infer" / "modules" / "train" / "train.py"
+    script = vendored_workspace() / "infer" / "modules" / "train" / "train.py"
     argv = [str(script),
             "-e", args.exp_name,
             "-sr", args.sr,
@@ -145,20 +130,21 @@ def main() -> int:
     if args.cancel_flag:
         os.environ["RVC_CANCEL_FLAG"] = str(Path(args.cancel_flag).resolve())
 
-    with chdir(workspace):
+    with chdir(vendored_workspace()):
         sys.argv = argv
         print(f"[rvc_core.train] argv={argv[1:]}", flush=True)
         runpy.run_path(str(script), run_name="__main__")
 
-    # If weights-dir specified, copy any produced *.pth from workspace's
-    # assets/weights into the caller's target.
     if args.weights_dir:
-        produced = workspace / "assets" / "weights"
+        produced = vendored_workspace() / "assets" / "weights"
         target = Path(args.weights_dir)
         target.mkdir(parents=True, exist_ok=True)
-        for f in produced.glob(f"{args.exp_name}*.pth"):
-            shutil.copy2(f, target / f.name)
-        print(f"[rvc_core.train] copied weights to {target}", flush=True)
+        if produced.exists():
+            for f in produced.glob(f"{args.exp_name}*.pth"):
+                shutil.copy2(f, target / f.name)
+            print(f"[rvc_core.train] copied weights to {target}", flush=True)
+
+    copy_artifacts(exp_dir, Path(args.logs_dir))
     return 0
 
 

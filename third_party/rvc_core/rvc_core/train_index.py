@@ -1,8 +1,4 @@
-"""Build FAISS IVF index from extracted features.
-
-Reimplemented from upstream's `train_index()` in `infer-web.py` so we don't
-have to import the Gradio module.
-"""
+"""Build FAISS IVF index from extracted features."""
 
 from __future__ import annotations
 
@@ -13,6 +9,7 @@ from pathlib import Path
 import numpy as np
 
 import rvc_core  # noqa: F401
+from rvc_core._workspace import copy_artifacts, vendored_exp_dir
 
 
 def main() -> int:
@@ -31,7 +28,7 @@ def main() -> int:
     except ImportError:
         _have_sklearn = False
 
-    exp_dir = Path(args.logs_dir).resolve()
+    exp_dir = vendored_exp_dir(args.exp_name)
     feature_dir = exp_dir / ("3_feature256" if args.version == "v1" else "3_feature768")
     if not feature_dir.exists():
         print(f"ERROR: feature dir not found: {feature_dir}", flush=True)
@@ -81,6 +78,8 @@ def main() -> int:
     added = exp_dir / f"added_IVF{n_ivf}_Flat_nprobe_1_{args.exp_name}_{args.version}.index"
     faiss.write_index(index, str(added))
     print(f"index built: {added}", flush=True)
+
+    copy_artifacts(exp_dir, Path(args.logs_dir))
     return 0
 
 

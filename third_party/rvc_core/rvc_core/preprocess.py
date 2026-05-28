@@ -1,11 +1,4 @@
-"""CLI wrapper around upstream `infer/modules/train/preprocess.py`.
-
-Usage:
-    python -m rvc_core.preprocess \
-        --exp-name myvoice --sr 40k \
-        --dataset-dir /path/to/wavs \
-        --logs-dir /workspace/logs/myvoice
-"""
+"""CLI wrapper around upstream `infer/modules/train/preprocess.py`."""
 
 from __future__ import annotations
 
@@ -15,8 +8,8 @@ import runpy
 import sys
 from pathlib import Path
 
-import rvc_core  # noqa: F401  side-effect: sys.path setup
-from rvc_core._workspace import chdir, ensure_experiment_layout, materialize_dataset
+import rvc_core  # noqa: F401
+from rvc_core._workspace import chdir, copy_artifacts, vendored_exp_dir, vendored_workspace
 
 _SR_MAP = {"32k": 32000, "40k": 40000, "48k": 48000}
 
@@ -32,16 +25,11 @@ def main() -> int:
     p.add_argument("--no-parallel", action="store_true")
     args = p.parse_args()
 
-    logs_dir = Path(args.logs_dir).resolve()
-    workspace = logs_dir.parent.parent  # logs/<exp> -> workspace
-    ensure_experiment_layout(workspace, args.exp_name)
-
+    exp_dir = vendored_exp_dir(args.exp_name)
     sr_hz = _SR_MAP[args.sr]
-    upstream_script = rvc_core.VENDORED_PATH / "infer" / "modules" / "train" / "preprocess.py"
+    upstream_script = vendored_workspace() / "infer" / "modules" / "train" / "preprocess.py"
 
-    with chdir(workspace):
-        # Upstream reads sys.argv positionally:
-        #   inp_root sr n_p exp_dir noparallel per
+    with chdir(vendored_workspace()):
         sys.argv = [
             str(upstream_script),
             str(Path(args.dataset_dir).resolve()),
@@ -53,6 +41,8 @@ def main() -> int:
         ]
         print(f"[rvc_core.preprocess] argv={sys.argv[1:]}", flush=True)
         runpy.run_path(str(upstream_script), run_name="__main__")
+
+    copy_artifacts(exp_dir, Path(args.logs_dir))
     return 0
 
 

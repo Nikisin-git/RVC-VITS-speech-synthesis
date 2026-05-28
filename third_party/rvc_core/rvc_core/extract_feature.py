@@ -10,7 +10,7 @@ from pathlib import Path
 import torch
 
 import rvc_core  # noqa: F401
-from rvc_core._workspace import chdir
+from rvc_core._workspace import chdir, copy_artifacts, vendored_exp_dir, vendored_workspace
 
 
 def main() -> int:
@@ -24,8 +24,7 @@ def main() -> int:
     p.add_argument("--half", action="store_true")
     args = p.parse_args()
 
-    logs_dir = Path(args.logs_dir).resolve()
-    workspace = logs_dir.parent.parent
+    exp_dir = vendored_exp_dir(args.exp_name)
     exp_rel = f"logs/{args.exp_name}"
 
     if torch.cuda.is_available():
@@ -35,14 +34,9 @@ def main() -> int:
     else:
         device = "cpu"
 
-    script = (
-        rvc_core.VENDORED_PATH / "infer" / "modules" / "train" / "extract_feature_print.py"
-    )
+    script = vendored_workspace() / "infer" / "modules" / "train" / "extract_feature_print.py"
 
-    with chdir(workspace):
-        # Upstream accepts two argv layouts:
-        #   short:  device n_part i_part exp_dir version is_half        (len 7 including script)
-        #   long:   device n_part i_part i_gpu exp_dir version is_half  (len 8)
+    with chdir(vendored_workspace()):
         sys.argv = [
             str(script),
             device,
@@ -54,6 +48,8 @@ def main() -> int:
         ]
         print(f"[rvc_core.extract_feature] argv={sys.argv[1:]}", flush=True)
         runpy.run_path(str(script), run_name="__main__")
+
+    copy_artifacts(exp_dir, Path(args.logs_dir))
     return 0
 
 
