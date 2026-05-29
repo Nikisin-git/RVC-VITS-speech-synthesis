@@ -155,6 +155,13 @@ def main() -> int:
     os.environ.setdefault("MASTER_ADDR", "127.0.0.1")
     os.environ.setdefault("MASTER_PORT", "29500")
 
+    # Upstream's process_ckpt.savee writes inference-ready weights via the
+    # relative path "assets/weights/<exp>.pth"; that resolves against cwd
+    # (= _vendored after chdir). The directory has to exist before training
+    # starts or every save crashes with 'Parent directory assets/weights
+    # does not exist'.
+    (vendored_workspace() / "assets" / "weights").mkdir(parents=True, exist_ok=True)
+
     with chdir(vendored_workspace()):
         sys.argv = argv
         print(f"[rvc_core.train] argv={argv[1:]}", flush=True)
