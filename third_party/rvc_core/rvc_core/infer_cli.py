@@ -31,6 +31,12 @@ def main() -> int:
     p.add_argument("--speaker-id", type=int, default=0)
     args = p.parse_args()
 
+    # Upstream's Config.__init__ calls arg_parse() which re-reads sys.argv with
+    # its own argparse (--port/--colab/--noparallel/etc). If our flags are still
+    # there it crashes with 'unrecognized arguments'. Wipe the argv tail so
+    # Config picks up only the program name and applies its defaults.
+    sys.argv = sys.argv[:1]
+
     # Upstream's Config and VC class look up assets via paths relative to cwd.
     # chdir into the vendored tree where assets/, configs/, i18n/ all live.
     workspace = _paths.VENDORED
