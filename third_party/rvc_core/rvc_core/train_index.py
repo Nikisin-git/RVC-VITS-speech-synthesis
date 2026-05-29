@@ -4,12 +4,41 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
+import tempfile
 from pathlib import Path
 
 import numpy as np
 
 import rvc_core  # noqa: F401
 from rvc_core._workspace import copy_artifacts, vendored_exp_dir
+
+
+def _safe_write_index(index, dest: Path) -> None:
+    """Write a FAISS index even when `dest` contains non-ASCII characters.
+
+    faiss.write_index uses C++ fopen(const char*), which on Windows goes
+    through the ANSI codepage and fails on Cyrillic/Unicode paths (e.g. a
+    model named 'Женя'). Write to an ASCII-only temp file first, then move
+    it into place with Python, which handles Unicode paths correctly.
+    """
+    import faiss  # type: ignore
+
+    dest = Path(dest)
+    # Fast path: pure-ASCII destination — write directly.
+    if str(dest).isascii():
+        faiss.write_index(index, str(dest))
+        return
+    # Unicode path: stage in temp, then move.
+    fd, tmp_name = tempfile.mkstemp(suffix=".index")
+    os.close(fd)
+    try:
+        faiss.write_index(index, tmp_name)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(tmp_name, str(dest))
+    finally:
+        if os.path.exists(tmp_name):
+            os.remove(tmp_name)
 
 
 def main() -> int:
@@ -70,13 +99,13 @@ def main() -> int:
     trained = exp_dir / (
         f"trained_IVF{n_ivf}_Flat_nprobe_1_{args.exp_name}_{args.version}.index"
     )
-    faiss.write_index(index, str(trained))
+    _safe_write_index(index, trained)
 
     batch_add = 8192
     for i in range(0, big.shape[0], batch_add):
         index.add(big[i:i + batch_add])
     added = exp_dir / f"added_IVF{n_ivf}_Flat_nprobe_1_{args.exp_name}_{args.version}.index"
-    faiss.write_index(index, str(added))
+    _safe_write_index(index, added)
     print(f"index built: {added}", flush=True)
 
     copy_artifacts(exp_dir, Path(args.logs_dir))

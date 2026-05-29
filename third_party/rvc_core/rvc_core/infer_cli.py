@@ -8,11 +8,25 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 import rvc_core  # noqa: F401  side-effect: sys.path setup
 from rvc_core import _paths
+
+
+def _ascii_safe_index(index_path: str) -> tuple[str, str | None]:
+    """faiss.read_index uses C++ fopen and fails on non-ASCII paths on Windows.
+    If the .index path has Unicode chars (e.g. a model named 'Женя'), copy it
+    to an ASCII temp file. Returns (path_to_use, temp_to_cleanup_or_None)."""
+    if not index_path or str(index_path).isascii():
+        return index_path, None
+    fd, tmp = tempfile.mkstemp(suffix=".index")
+    os.close(fd)
+    shutil.copy2(index_path, tmp)
+    return tmp, tmp
 
 
 def main() -> int:
@@ -58,20 +72,25 @@ def main() -> int:
     print(f"[rvc_core.infer_cli] loading {weight_name}", flush=True)
     vc.get_vc(weight_name)
 
-    msg, (sr, audio) = vc.vc_single(
-        args.speaker_id,
-        args.input,
-        args.pitch,
-        None,                 # f0_file
-        args.f0_method,
-        args.index,
-        "",                   # file_index2
-        args.index_rate,
-        args.filter_radius,
-        args.resample_sr,
-        args.rms_mix_rate,
-        args.protect,
-    )
+    index_path, index_tmp = _ascii_safe_index(args.index)
+    try:
+        msg, (sr, audio) = vc.vc_single(
+            args.speaker_id,
+            args.input,
+            args.pitch,
+            None,                 # f0_file
+            args.f0_method,
+            index_path,
+            "",                   # file_index2
+            args.index_rate,
+            args.filter_radius,
+            args.resample_sr,
+            args.rms_mix_rate,
+            args.protect,
+        )
+    finally:
+        if index_tmp and os.path.exists(index_tmp):
+            os.remove(index_tmp)
     if audio is None:
         print(f"ERROR: {msg}", file=sys.stderr, flush=True)
         return 1
