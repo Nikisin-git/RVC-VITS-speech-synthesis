@@ -50,12 +50,24 @@ def _encode_mp3(tmp_wav: Path, out_path: Path) -> Path:
     return fallback
 
 
+def _to_soundfile_layout(audio: np.ndarray) -> np.ndarray:
+    """Convert librosa's (channels, frames) layout to soundfile's (frames, channels).
+    librosa.load(mono=False) returns shape (C, N); sf.write expects (N, C). If we
+    pass (C, N) directly, libsndfile sees C frames with N channels and dies with
+    'Format not recognised' (or similar) when writing the WAV header.
+    """
+    if audio.ndim == 2 and audio.shape[0] < audio.shape[1]:
+        return np.ascontiguousarray(audio.T)
+    return audio
+
+
 def save_audio(path: str | Path, audio: np.ndarray, sr: int, fmt: str = "wav") -> Path:
     """Save audio to wav or mp3 (mp3 via ffmpeg)."""
     import soundfile as sf
     path = Path(path)
     fmt = fmt.lower().lstrip(".")
     audio = np.clip(audio, -1.0, 1.0)
+    audio = _to_soundfile_layout(audio)
     if fmt == "wav":
         path = _replace_ext(path, ".wav")
         sf.write(str(path), audio, sr, subtype="PCM_16")
