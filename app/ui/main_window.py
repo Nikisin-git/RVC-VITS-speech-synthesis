@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
         ]:
             btn = QPushButton(label)
             btn.setMinimumHeight(36)
-            btn.clicked.connect(lambda _, s=slot: (dlg.accept(), s()))
+            btn.clicked.connect(lambda *_, s=slot: (dlg.accept(), s()))
             lay.addWidget(btn)
         dlg.exec()
 
