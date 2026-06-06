@@ -77,6 +77,7 @@ def build_coqui_config(cfg: TtsTrainConfig) -> dict:
         "phonemizer": "espeak",
         "phoneme_language": cfg.language,
         "use_phonemes": True,
+        "phoneme_cache_path": str(model_dir(cfg.model_name) / "phoneme_cache"),
         "test_sentences": [],
     }
     if cfg.mode == TtsTrainMode.FINETUNE and cfg.pretrained_checkpoint:
