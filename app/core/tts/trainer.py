@@ -223,10 +223,16 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
 
     trainer.fit()
 
+    # Coqui creates a timestamped run subfolder under output_path and saves
+    # best_model.pth + run-local config.json there. Find the freshest one.
     weights_dir = model_dir(cfg.model_name)
+    run_dirs = [p for p in weights_dir.iterdir() if p.is_dir()]
+    run_dir = max(run_dirs, key=lambda p: p.stat().st_mtime) if run_dirs else weights_dir
+    best_model = run_dir / "best_model.pth"
+    run_config = run_dir / "config.json"
     return {
-        "weights_dir": str(weights_dir),
-        "config": str(config_path),
-        "generator": str(weights_dir / "G.pth"),
-        "discriminator": str(weights_dir / "D.pth"),
+        "weights_dir": str(run_dir),
+        "config": str(run_config if run_config.exists() else config_path),
+        "model": str(best_model) if best_model.exists() else "",
     }
+
