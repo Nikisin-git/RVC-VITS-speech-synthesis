@@ -159,6 +159,7 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
         from TTS.tts.configs.vits_config import VitsConfig  # type: ignore
         from TTS.tts.datasets import load_tts_samples  # type: ignore
         from TTS.tts.models.vits import Vits  # type: ignore
+        from TTS.tts.configs.shared_configs import CharactersConfig  # type: ignore
         from TTS.tts.utils.text.characters import IPAPhonemes  # type: ignore
         from TTS.tts.utils.text.tokenizer import TTSTokenizer  # type: ignore
         from TTS.utils.audio import AudioProcessor  # type: ignore
@@ -175,18 +176,20 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
     config = VitsConfig()
     config.load_json(str(config_path))
 
-    # VitsConfig auto-creates an empty CharactersConfig with characters=None
-    # and punctuations=None. TTSTokenizer.init_from_config forwards those
-    # Nones into IPAPhonemes, which then crashes in _create_vocab on
-    # set(None). Populate the strings from the IPAPhonemes class defaults.
+    # load_json leaves config.characters as None when the JSON file has no
+    # 'characters' key, and TTSTokenizer.init_from_config crashes on the
+    # missing object. Build a full CharactersConfig from the IPAPhonemes
+    # class defaults so vocab construction has real strings to work with.
     _ipa_defaults = IPAPhonemes()
-    config.characters.characters_class = "TTS.tts.utils.text.characters.IPAPhonemes"
-    config.characters.characters = _ipa_defaults.characters
-    config.characters.punctuations = _ipa_defaults.punctuations
-    config.characters.pad = _ipa_defaults.pad
-    config.characters.eos = _ipa_defaults.eos
-    config.characters.bos = _ipa_defaults.bos
-    config.characters.blank = _ipa_defaults.blank
+    config.characters = CharactersConfig(
+        characters_class="TTS.tts.utils.text.characters.IPAPhonemes",
+        characters=_ipa_defaults.characters,
+        punctuations=_ipa_defaults.punctuations,
+        pad=_ipa_defaults.pad,
+        eos=_ipa_defaults.eos,
+        bos=_ipa_defaults.bos,
+        blank=_ipa_defaults.blank,
+    )
 
     ap = AudioProcessor.init_from_config(config)
     # The tokenizer must be initialized before the model, otherwise
