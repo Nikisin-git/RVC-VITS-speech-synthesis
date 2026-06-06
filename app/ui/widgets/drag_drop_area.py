@@ -7,7 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 from PySide6.QtWidgets import (
-    QFileDialog, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
+    QAbstractItemView, QFileDialog, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QVBoxLayout, QWidget,
 )
 
@@ -53,9 +53,14 @@ class DragDropArea(QWidget):
 
         self._list = QListWidget()
         self._list.setMinimumHeight(80)
-        # QListWidget tries to consume drop events for its own drag-reorder,
-        # which would otherwise swallow file drops over the list area.
+        # QListWidget defaults to accepting drops for its built-in
+        # drag-reorder; it also routes mouse events through an internal
+        # `viewport()` child which has its OWN acceptDrops flag. Both have
+        # to be turned off, plus dragDropMode set to NoDragDrop, otherwise
+        # the list area silently swallows every file drop.
         self._list.setAcceptDrops(False)
+        self._list.setDragDropMode(QAbstractItemView.NoDragDrop)
+        self._list.viewport().setAcceptDrops(False)
         layout.addWidget(self._list, stretch=1)
 
         row = QHBoxLayout()
