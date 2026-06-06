@@ -70,13 +70,10 @@ def build_coqui_config(cfg: TtsTrainConfig) -> dict:
         "audio": {
             "sample_rate": cfg.sample_rate,
         },
-        "characters": {
-            "pad": "<PAD>",
-            "eos": "<EOS>",
-            "bos": "<BOS>",
-            "blank": "<BLNK>",
-            "characters_class": "TTS.tts.utils.text.characters.IPAPhonemes",
-        },
+        # Coqui's IPAPhonemes already ships sensible default character /
+        # punctuation sets. We deliberately do NOT override the `characters`
+        # block — passing a partial dict (pad/eos/bos/blank only) makes the
+        # tokenizer try set(None) on the missing strings and crash.
         "phonemizer": "espeak",
         "phoneme_language": cfg.language,
         "use_phonemes": True,
@@ -162,6 +159,7 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
         from TTS.tts.configs.vits_config import VitsConfig  # type: ignore
         from TTS.tts.datasets import load_tts_samples  # type: ignore
         from TTS.tts.models.vits import Vits  # type: ignore
+        from TTS.tts.utils.text.characters import IPAPhonemes  # type: ignore
         from TTS.tts.utils.text.tokenizer import TTSTokenizer  # type: ignore
         from TTS.utils.audio import AudioProcessor  # type: ignore
     except Exception as e:
@@ -176,6 +174,19 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
     config_path = save_config(cfg)
     config = VitsConfig()
     config.load_json(str(config_path))
+
+    # VitsConfig auto-creates an empty CharactersConfig with characters=None
+    # and punctuations=None. TTSTokenizer.init_from_config forwards those
+    # Nones into IPAPhonemes, which then crashes in _create_vocab on
+    # set(None). Populate the strings from the IPAPhonemes class defaults.
+    _ipa_defaults = IPAPhonemes()
+    config.characters.characters_class = "TTS.tts.utils.text.characters.IPAPhonemes"
+    config.characters.characters = _ipa_defaults.characters
+    config.characters.punctuations = _ipa_defaults.punctuations
+    config.characters.pad = _ipa_defaults.pad
+    config.characters.eos = _ipa_defaults.eos
+    config.characters.bos = _ipa_defaults.bos
+    config.characters.blank = _ipa_defaults.blank
 
     ap = AudioProcessor.init_from_config(config)
     # The tokenizer must be initialized before the model, otherwise
