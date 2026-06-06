@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QVBoxLayout, QWidget,
@@ -53,6 +53,9 @@ class DragDropArea(QWidget):
 
         self._list = QListWidget()
         self._list.setMinimumHeight(80)
+        # QListWidget tries to consume drop events for its own drag-reorder,
+        # which would otherwise swallow file drops over the list area.
+        self._list.setAcceptDrops(False)
         layout.addWidget(self._list, stretch=1)
 
         row = QHBoxLayout()
@@ -61,6 +64,12 @@ class DragDropArea(QWidget):
         self._btn_attach.clicked.connect(self._open_dialog)
         row.addWidget(self._btn_attach)
         layout.addLayout(row)
+
+        # Watch every child for drag events and forward them to ourselves, so
+        # drops anywhere inside the composite widget (hint label, list, button)
+        # behave the same as drops on the bare background.
+        for child in (self._hint, self._list, self._btn_attach):
+            child.installEventFilter(self)
 
     def files(self) -> list[str]:
         return list(self._files)
@@ -110,12 +119,41 @@ class DragDropArea(QWidget):
         self.files_changed.emit(self._files)
 
     # --- drag/drop ---
+    def _has_local_urls(self, mime) -> bool:
+        return mime.hasUrls() and any(u.isLocalFile() for u in mime.urls())
+
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
-        if event.mimeData().hasUrls():
+        if self._has_local_urls(event.mimeData()):
             event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # noqa: N802
+        # Qt rejects the drop on some platforms (notably Wayland and certain
+        # Windows configurations) unless dragMoveEvent also accepts.
+        if self._has_local_urls(event.mimeData()):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
 
     def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
         paths = [u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile()]
         if paths:
             self.add_files(paths)
-        event.acceptProposedAction()
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
+        # Forward drag/drop events from children (list, label, button) so the
+        # composite widget behaves as a single drop target.
+        if event.type() == QEvent.DragEnter:
+            self.dragEnterEvent(event)  # type: ignore[arg-type]
+            return event.isAccepted()
+        if event.type() == QEvent.DragMove:
+            self.dragMoveEvent(event)  # type: ignore[arg-type]
+            return event.isAccepted()
+        if event.type() == QEvent.Drop:
+            self.dropEvent(event)  # type: ignore[arg-type]
+            return event.isAccepted()
+        return super().eventFilter(obj, event)
