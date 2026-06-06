@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,8 +26,50 @@ class TtsInferConfig:
     language: str | None = "ru"
 
 
+def _validate_coqui_config(config_path: Path) -> None:
+    """Reject configs that obviously aren't Coqui-TTS, before Synthesizer
+    explodes deep inside transformers with a misleading 'GenerationMixin'
+    error. Coqui configs have a top-level 'model' string ('vits', 'xtts',
+    'tacotron2', ...) plus 'audio' / 'model_args'. so-vits-svc, RVC and a
+    few other competing formats use a different schema we can't read.
+    """
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise ValueError(f"Не удалось прочитать config.json: {e}") from e
+
+    if not isinstance(data, dict):
+        raise ValueError("config.json должен быть JSON-объектом.")
+
+    sovits_markers = (
+        "contentvec_final_proj" in data.get("data", {}),
+        "ssl_dim" in data.get("model", {}),
+        isinstance(data.get("spk"), dict) and "model" in data and "train" in data,
+    )
+    if any(sovits_markers):
+        raise ValueError(
+            "Это конфиг so-vits-svc (singing voice conversion), а не Coqui-TTS. "
+            "Эта модель принимает на вход аудио, а не текст — для голосовых "
+            "преобразований используйте вкладку RVC. Для TTS нужна модель с "
+            "config.json формата Coqui-TTS (поля 'model', 'audio', 'model_args')."
+        )
+
+    model_field = data.get("model")
+    has_audio = isinstance(data.get("audio"), dict)
+    has_model_args = isinstance(data.get("model_args"), dict)
+    if not (isinstance(model_field, str) and (has_audio or has_model_args)):
+        raise ValueError(
+            "Это не похоже на конфиг Coqui-TTS: нет поля 'model' с именем "
+            "архитектуры (например 'vits', 'xtts') и/или нет блока 'audio'/"
+            "'model_args'. Скачайте модель Coqui-TTS или обучите свою через "
+            "вкладку «Обучить модель (TTS)»."
+        )
+
+
 def _synthesize(cfg: TtsInferConfig) -> tuple[np.ndarray, int]:
     """Synthesize raw audio using Coqui-TTS API."""
+    _validate_coqui_config(cfg.config_json)
+
     from TTS.utils.synthesizer import Synthesizer  # type: ignore
 
     syn = Synthesizer(
