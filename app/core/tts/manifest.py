@@ -52,10 +52,15 @@ def validate_manifest(manifest_path: Path, audio_dir: Path) -> ManifestReport:
             continue
         filename, transcript = parts[0].strip(), parts[1].strip()
         referenced.add(filename)
-        audio_path = audio_dir / filename
-        if not audio_path.exists():
+        # Coqui's ljspeech formatter does `cols[0] + ".wav"`, so the manifest
+        # is allowed to drop the extension. Accept both forms.
+        candidate = audio_dir / filename
+        if not candidate.exists() and not filename.lower().endswith(".wav"):
+            candidate = audio_dir / f"{filename}.wav"
+        if not candidate.exists():
             report.errors.append(f"Строка {lineno}: файл не найден — {filename}")
             continue
+        referenced.add(candidate.name)
         report.rows.append((filename, transcript))
 
     on_disk = {p.name for p in audio_dir.glob("*.wav")}

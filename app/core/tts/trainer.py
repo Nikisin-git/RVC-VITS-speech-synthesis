@@ -125,6 +125,10 @@ def _validate_manifest(cfg: TtsTrainConfig) -> None:
             candidate = cfg.audio_dir / Path(rel).name
         else:
             candidate = cfg.audio_dir / rel
+        # Coqui ljspeech appends '.wav' itself, so the manifest may store
+        # bare stems. Try both.
+        if not candidate.exists() and not str(candidate).lower().endswith(".wav"):
+            candidate = candidate.with_name(candidate.name + ".wav")
         if not candidate.exists():
             missing.append(rel)
 
