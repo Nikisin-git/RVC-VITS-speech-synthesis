@@ -4,12 +4,39 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
+import traceback
 from pathlib import Path
 
 import _bootstrap  # noqa: F401
 
-from app.core.tts.trainer import TtsTrainConfig, TtsTrainMode, train
+
+def _patch_filehandler_for_windows() -> None:
+    """Force logging.FileHandler to open with delay=True and mode='a'.
+
+    Coqui-Trainer opens trainer_*_log.txt with mode='w', which on Windows
+    grabs an exclusive handle. If Windows Defender / Search / OneDrive
+    briefly touches the file at the same moment, Trainer dies with
+    WinError 32. delay=True postpones the actual open until the first
+    log emit, and mode='a' uses non-exclusive append — together they
+    sidestep both races.
+    """
+    if sys.platform != "win32":
+        return
+    _orig_init = logging.FileHandler.__init__
+
+    def _patched(self, filename, mode="a", encoding=None, delay=True, errors=None):
+        if mode == "w":
+            mode = "a"
+        _orig_init(self, filename, mode=mode, encoding=encoding, delay=True, errors=errors)
+
+    logging.FileHandler.__init__ = _patched  # type: ignore[assignment]
+
+
+_patch_filehandler_for_windows()
+
+from app.core.tts.trainer import TtsTrainConfig, TtsTrainMode, train  # noqa: E402
 
 
 def main() -> int:
@@ -45,7 +72,8 @@ def main() -> int:
         print(f"RESULT: {result}", flush=True)
         return 0
     except Exception as e:
-        print(f"ERROR: {e}", file=sys.stderr, flush=True)
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+        traceback.print_exc()
         return 1
 
 
