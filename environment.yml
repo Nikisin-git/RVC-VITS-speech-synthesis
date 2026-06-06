@@ -11,6 +11,7 @@ dependencies:
   - pytorch-cuda=11.8
   - ffmpeg=6.0
   - pip:
+      - setuptools>=68
       - PySide6==6.6.3
       - demucs==4.0.1
       - deepfilternet==0.5.6

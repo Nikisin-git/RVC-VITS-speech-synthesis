@@ -68,7 +68,14 @@ def main() -> int:
                 # get force-transcribed as Russian and score WER ~1.0).
                 wer_info = wer_from_audio(Path(args.input), out_path, language=None)
                 result["wer"] = wer_info.get("wer")
+                ref_text = wer_info.get("reference_text", "")
+                hyp_text = wer_info.get("hypothesis_text", "")
                 print(f"WER: {result['wer']:.3f}", flush=True)
+                # Whisper hallucinates on sung audio, so dump transcripts to help
+                # the user judge whether a high WER reflects bad RVC quality or
+                # just unreliable transcription on music.
+                print(f"  reference (вход): {ref_text[:200]}", flush=True)
+                print(f"  hypothesis (выход): {hyp_text[:200]}", flush=True)
             except Exception as we:
                 import traceback
                 print(f"WARN: WER failed: {type(we).__name__}: {we}", flush=True)
