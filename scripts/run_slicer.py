@@ -14,7 +14,8 @@ from app.core.audio.slicer import SlicerConfig, SliceMode, TailMode, slice_file
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--input", required=True)
+    p.add_argument("--input", action="append", required=True,
+                   help="Input file. Repeat to pass multiple (concatenated in --single-track mode).")
     p.add_argument("--format", default="wav", choices=["wav", "mp3"])
     p.add_argument("--mode", choices=["timer", "vad"], default="timer")
     p.add_argument("--length", type=int, default=10)
@@ -29,7 +30,7 @@ def main() -> int:
         single_track=args.single_track,
     )
     try:
-        outs = slice_file(Path(args.input), cfg)
+        outs = slice_file([Path(p) for p in args.input], cfg)
         for o in outs:
             print(f"output: {o}", flush=True)
         return 0

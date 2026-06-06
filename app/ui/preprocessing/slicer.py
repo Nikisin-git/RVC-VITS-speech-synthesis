@@ -100,7 +100,16 @@ class SlicerWindow(QWidget):
 
         dlg = ProgressDialog("Идёт нарезка..." if not single else "Идёт склейка...",
                              show_log=True, parent=self)
-        remaining = list(files)
+
+        # In single-track mode all uploaded files are concatenated into one
+        # output, so we make a single CLI call with multiple --input flags.
+        # In multi-fragment mode each file is processed independently.
+        if single:
+            batches: list[list[str]] = [list(files)]
+        else:
+            batches = [[f] for f in files]
+
+        remaining = list(batches)
         produced: list[str] = []
 
         def _next() -> None:
@@ -108,10 +117,14 @@ class SlicerWindow(QWidget):
                 dlg.set_status(f"Готово. Файлов обработано: {len(produced)}")
                 dlg.finish_success()
                 return
-            path = remaining.pop(0)
-            dlg.set_status(f"Обработка: {Path(path).name}")
-            args = [
-                "--input", path, "--format", fmt,
+            batch = remaining.pop(0)
+            label = Path(batch[0]).name if len(batch) == 1 else f"{len(batch)} файлов"
+            dlg.set_status(f"Обработка: {label}")
+            args: list[str] = []
+            for path in batch:
+                args += ["--input", path]
+            args += [
+                "--format", fmt,
                 "--mode", mode, "--length", str(length),
                 "--tail-mode", tail,
             ]
@@ -122,7 +135,7 @@ class SlicerWindow(QWidget):
 
             def _done(code: int) -> None:
                 if code == 0:
-                    produced.append(path)
+                    produced.extend(batch)
                     _next()
                 else:
                     dlg.finish_error(f"Ошибка, код {code}")
