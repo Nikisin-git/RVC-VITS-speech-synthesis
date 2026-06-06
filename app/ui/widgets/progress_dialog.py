@@ -68,6 +68,11 @@ class ProgressDialog(QDialog):
     def finish_success(self) -> None:
         self._bar.setRange(0, 100)
         self._bar.setValue(100)
+        self._status.setText("Готово.")
+        # Drop the trailing "..." in the window title so the taskbar entry
+        # also stops looking like it is still working.
+        title = self.windowTitle().rstrip(".").rstrip()
+        self.setWindowTitle(f"{title} — готово")
         self._btn_cancel.setText("Закрыть")
         self._btn_cancel.clicked.disconnect()
         self._btn_cancel.clicked.connect(self.accept)
