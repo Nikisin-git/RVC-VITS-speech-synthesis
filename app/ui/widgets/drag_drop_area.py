@@ -23,8 +23,11 @@ class _FileRow(QWidget):
         lay = QHBoxLayout(self)
         lay.setContentsMargins(6, 2, 6, 2)
         lay.addWidget(QLabel(Path(path).name), stretch=1)
-        btn = QPushButton("×")
-        btn.setFixedWidth(28)
+        btn = QPushButton("✕")  # ✕ heavy multiplication X, renders as a proper cross
+        btn.setObjectName("file_row_remove")
+        btn.setFixedSize(24, 24)
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setToolTip("Удалить")
         btn.clicked.connect(lambda: self.remove_clicked.emit(self._path))
         lay.addWidget(btn)
 
@@ -42,6 +45,10 @@ class DragDropArea(QWidget):
         self._files: list[str] = []
 
         self.setAcceptDrops(True)
+        # Outer object name is used by QSS to draw a highlight ring when a
+        # drag enters us (toggled via the dynamic 'dragActive' property).
+        self.setObjectName("dragdrop_area")
+        self.setProperty("dragActive", False)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
 
@@ -127,8 +134,20 @@ class DragDropArea(QWidget):
     def _has_local_urls(self, mime) -> bool:
         return mime.hasUrls() and any(u.isLocalFile() for u in mime.urls())
 
+    def _set_drag_active(self, active: bool) -> None:
+        if self.property("dragActive") == active:
+            return
+        self.setProperty("dragActive", active)
+        # Force a stylesheet re-evaluation so the new property value takes
+        # effect immediately (Qt doesn't repolish on property change alone).
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self._hint.style().unpolish(self._hint)
+        self._hint.style().polish(self._hint)
+
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
         if self._has_local_urls(event.mimeData()):
+            self._set_drag_active(True)
             event.acceptProposedAction()
         else:
             event.ignore()
@@ -141,7 +160,12 @@ class DragDropArea(QWidget):
         else:
             event.ignore()
 
+    def dragLeaveEvent(self, event) -> None:  # noqa: N802
+        self._set_drag_active(False)
+        super().dragLeaveEvent(event)
+
     def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
+        self._set_drag_active(False)
         paths = [u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile()]
         if paths:
             self.add_files(paths)

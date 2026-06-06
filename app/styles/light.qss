@@ -20,6 +20,11 @@ QTabBar::tab { background: #eaeaea; border: 1px solid #ccc; padding: 6px 12px; }
 QTabBar::tab:selected { background: #fff; }
 #log_viewer { background: #0e0e12; color: #b3d6ff; border: 1px solid #2a2a30; }
 #dragdrop_hint { background: #fff; border: 2px dashed #bbb; border-radius: 6px; padding: 18px; color: #888; }
+#dragdrop_area[dragActive="true"] { background: #e0ecff; border: 2px solid #4a8aff; border-radius: 6px; }
+#dragdrop_area[dragActive="true"] #dragdrop_hint { background: #e0ecff; border: 2px dashed #4a8aff; color: #1a4080; }
+QPushButton#file_row_remove { background: transparent; border: 1px solid #bbb; border-radius: 12px; color: #555; font-weight: bold; padding: 0; }
+QPushButton#file_row_remove:hover { background: #ffd0d0; border-color: #c04040; color: #801010; }
+QPushButton#file_row_remove:pressed { background: #ffa0a0; }
 #trapezoid_title { color: #222; font-weight: bold; font-size: 13px; }
 #error_label { color: #c0392b; }
 #hint { color: #777; font-style: italic; }

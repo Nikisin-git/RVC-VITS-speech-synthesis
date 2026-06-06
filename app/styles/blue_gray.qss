@@ -17,6 +17,11 @@ QProgressBar { background: #34465a; border: 1px solid #5a7090; border-radius: 4p
 QProgressBar::chunk { background: #6fa0d4; border-radius: 3px; }
 #log_viewer { background: #0e1622; color: #c8e0ff; border: 1px solid #2a3a52; }
 #dragdrop_hint { background: #34465a; border: 2px dashed #6e88a8; border-radius: 6px; padding: 18px; color: #b8c8d8; }
+#dragdrop_area[dragActive="true"] { background: #3e5a80; border: 2px solid #8ec0ff; border-radius: 6px; }
+#dragdrop_area[dragActive="true"] #dragdrop_hint { background: #3e5a80; border: 2px dashed #8ec0ff; color: #e8f0ff; }
+QPushButton#file_row_remove { background: transparent; border: 1px solid #6e88a8; border-radius: 12px; color: #c8d8e8; font-weight: bold; padding: 0; }
+QPushButton#file_row_remove:hover { background: #804040; border-color: #e05050; color: #ffe0e0; }
+QPushButton#file_row_remove:pressed { background: #a02020; }
 #trapezoid_title { color: #fff; font-weight: bold; font-size: 13px; }
 #error_label { color: #ffb0b0; }
 #hint { color: #b8c8d8; font-style: italic; }

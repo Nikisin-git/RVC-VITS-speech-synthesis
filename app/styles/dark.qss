@@ -93,6 +93,32 @@ QTabBar::tab:selected {
     padding: 18px;
     color: #999;
 }
+#dragdrop_area[dragActive="true"] {
+    background: #2a3550;
+    border: 2px solid #5a8cff;
+    border-radius: 6px;
+}
+#dragdrop_area[dragActive="true"] #dragdrop_hint {
+    background: #2a3550;
+    border: 2px dashed #5a8cff;
+    color: #b3d6ff;
+}
+QPushButton#file_row_remove {
+    background: transparent;
+    border: 1px solid #4a4a55;
+    border-radius: 12px;
+    color: #c0c0c8;
+    font-weight: bold;
+    padding: 0;
+}
+QPushButton#file_row_remove:hover {
+    background: #5a2a2a;
+    border-color: #d04040;
+    color: #ffe0e0;
+}
+QPushButton#file_row_remove:pressed {
+    background: #7a1a1a;
+}
 #trapezoid_title {
     color: #fff;
     font-weight: bold;
