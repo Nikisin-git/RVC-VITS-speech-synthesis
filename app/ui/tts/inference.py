@@ -29,11 +29,11 @@ class TtsInferenceWindow(QWidget):
 
         model_box = QGroupBox("Модель")
         ml = QHBoxLayout(model_box)
-        self._dd_g = DragDropArea("G.pth", allowed_exts=(".pth",), single_file=True)
-        self._dd_d = DragDropArea("D.pth", allowed_exts=(".pth",), single_file=True)
+        # Coqui-TTS VITS stores generator + discriminator weights in one
+        # combined best_model.pth — there is no separate D.pth.
+        self._dd_model = DragDropArea("best_model.pth", allowed_exts=(".pth",), single_file=True)
         self._dd_cfg = DragDropArea("config.json", allowed_exts=(".json",), single_file=True)
-        ml.addWidget(self._dd_g)
-        ml.addWidget(self._dd_d)
+        ml.addWidget(self._dd_model)
         ml.addWidget(self._dd_cfg)
         layout.addWidget(model_box)
 
@@ -74,21 +74,21 @@ class TtsInferenceWindow(QWidget):
         self._pitch.set_value(0)
 
     def _run(self) -> None:
-        g = self._dd_g.files()
+        model = self._dd_model.files()
         cfg = self._dd_cfg.files()
         text = self._text.toPlainText().strip()
-        if not (g and cfg and text):
-            QMessageBox.warning(self, "Вход", "Нужны G.pth, config.json и текст.")
+        if not (model and cfg and text):
+            QMessageBox.warning(self, "Вход", "Нужны best_model.pth, config.json и текст.")
             return
         fmt = "wav" if self._rb_wav.isChecked() else "mp3"
-        model_name = Path(g[0]).stem
+        model_name = Path(model[0]).stem
 
         VITS_DIR.mkdir(parents=True, exist_ok=True)
         payload = VITS_DIR / "_last_text.txt"
         payload.write_text(text, encoding="utf-8")
 
         args = [
-            "--generator", g[0],
+            "--generator", model[0],
             "--config", cfg[0],
             "--text-file", str(payload),
             "--length-scale", str(self._length.value()),
