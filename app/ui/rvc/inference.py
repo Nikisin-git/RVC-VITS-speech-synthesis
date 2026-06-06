@@ -20,6 +20,21 @@ from app.ui.widgets.slider_with_input import SliderWithInput
 from app.workers.base_worker import ProcessWorker
 
 
+def _format_metrics(data: dict) -> str:
+    parts = []
+    wer = data.get("wer")
+    secs = data.get("secs")
+    if wer is not None:
+        parts.append(f"WER: {wer:.3f}")
+    elif "wer_error" in data:
+        parts.append(f"WER: ошибка ({data['wer_error']})")
+    if secs is not None:
+        parts.append(f"SECS: {secs:.3f}")
+    elif "secs_error" in data:
+        parts.append(f"SECS: ошибка ({data['secs_error']})")
+    return " | ".join(parts) if parts else "Метрики недоступны."
+
+
 class _PostprocessTabs(QTabWidget):
     """Reverb / Compressor / Filters / NoiseGate tabs."""
 
@@ -210,12 +225,7 @@ class RvcInferenceWindow(QWidget):
             out = data.get("output")
             if out:
                 self._player.load(Path(out))
-            wer = data.get("wer")
-            secs = data.get("secs")
-            self._metrics.setText(
-                f"WER: {wer:.3f} | SECS: {secs:.3f}" if wer is not None and secs is not None
-                else "Метрики недоступны."
-            )
+            self._metrics.setText(_format_metrics(data))
             dlg.set_status("Готово.")
             dlg.finish_success()
 

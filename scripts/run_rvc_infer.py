@@ -56,22 +56,41 @@ def main() -> int:
 
     try:
         out_path = infer(cfg)
-        result = {"output": str(out_path)}
+        result: dict = {"output": str(out_path)}
 
         if args.compute_metrics:
+            # Compute WER and SECS independently — a failure in one (e.g. Whisper
+            # model download timing out) shouldn't blank out the other.
+            print("Считаются метрики качества...", flush=True)
             try:
                 from app.core.metrics.wer import wer_from_audio
+                # language=None → Whisper auto-detects (so English inputs don't
+                # get force-transcribed as Russian and score WER ~1.0).
+                wer_info = wer_from_audio(Path(args.input), out_path, language=None)
+                result["wer"] = wer_info.get("wer")
+                print(f"WER: {result['wer']:.3f}", flush=True)
+            except Exception as we:
+                import traceback
+                print(f"WARN: WER failed: {type(we).__name__}: {we}", flush=True)
+                traceback.print_exc()
+                result["wer_error"] = f"{type(we).__name__}: {we}"
+
+            try:
                 from app.core.metrics.secs import compute_secs
-                wer = wer_from_audio(Path(args.input), out_path, language="ru").get("wer")
-                secs = compute_secs(Path(args.input), out_path)
-                result.update({"wer": wer, "secs": secs})
-            except Exception as me:
-                print(f"WARN: metrics failed: {me}", flush=True)
+                result["secs"] = compute_secs(Path(args.input), out_path)
+                print(f"SECS: {result['secs']:.3f}", flush=True)
+            except Exception as se:
+                import traceback
+                print(f"WARN: SECS failed: {type(se).__name__}: {se}", flush=True)
+                traceback.print_exc()
+                result["secs_error"] = f"{type(se).__name__}: {se}"
 
         print(f"RESULT_JSON={json.dumps(result, ensure_ascii=False)}", flush=True)
         return 0
     except Exception as e:
+        import traceback
         print(f"ERROR: {e}", file=sys.stderr, flush=True)
+        traceback.print_exc()
         return 1
 
 
