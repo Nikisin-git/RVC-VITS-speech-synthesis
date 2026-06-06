@@ -26,3 +26,7 @@ scipy>=1.11
 tqdm
 PyYAML
 coqui-tts>=0.24
+# coqui-tts 0.24+ читает модели через transformers; в transformers 4.50+
+# реорганизовали lazy-импорты, из-за чего coqui падает с непонятным
+# "Could not import module 'GenerationMixin'". Держим transformers ниже.
+transformers>=4.43,<4.50

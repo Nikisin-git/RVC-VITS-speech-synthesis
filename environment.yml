@@ -31,3 +31,4 @@ dependencies:
       - tqdm
       - PyYAML
       - coqui-tts>=0.24
+      - "transformers>=4.43,<4.50"

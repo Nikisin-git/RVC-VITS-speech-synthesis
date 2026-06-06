@@ -94,18 +94,79 @@ def save_config(cfg: TtsTrainConfig) -> Path:
     return target
 
 
+def _validate_manifest(cfg: TtsTrainConfig) -> None:
+    """Catch typical mistakes in the manifest before Coqui chokes on them.
+
+    Expected LJSpeech format: `audio_filename|text` or
+    `audio_filename|text|normalized_text`, where the filename is RELATIVE
+    to audio_dir. Absolute paths (especially Windows E:/... from someone
+    else's dataset) and missing files are the most common failure mode.
+    """
+    if not cfg.manifest_path.exists():
+        raise FileNotFoundError(f"Манифест не найден: {cfg.manifest_path}")
+
+    lines = [ln.strip() for ln in cfg.manifest_path.read_text(
+        encoding="utf-8", errors="replace").splitlines() if ln.strip()]
+    if not lines:
+        raise ValueError("Манифест пуст.")
+
+    missing: list[str] = []
+    abs_paths = 0
+    for ln in lines[:50]:  # sample the first 50 rows
+        parts = ln.split("|")
+        if len(parts) < 2:
+            raise ValueError(
+                f"Строка манифеста не соответствует формату 'путь|текст': {ln[:80]!r}"
+            )
+        rel = parts[0]
+        p = Path(rel)
+        if p.is_absolute() or (len(rel) >= 2 and rel[1] == ":"):
+            abs_paths += 1
+            candidate = cfg.audio_dir / Path(rel).name
+        else:
+            candidate = cfg.audio_dir / rel
+        if not candidate.exists():
+            missing.append(rel)
+
+    if abs_paths:
+        print(
+            f"WARN: {abs_paths}/{min(50, len(lines))} строк используют абсолютные пути. "
+            "Coqui-TTS ждёт пути относительно audio_dir; пробуем искать по имени файла.",
+            flush=True,
+        )
+    if missing:
+        sample = "\n  ".join(missing[:5])
+        raise FileNotFoundError(
+            f"Не найдено {len(missing)} аудиофайлов из манифеста в {cfg.audio_dir}. "
+            f"Примеры:\n  {sample}\n"
+            "Проверьте, что аудио лежит в audio_dir и пути в манифесте указывают "
+            "на реальные имена файлов."
+        )
+
+
 def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
     """Launch Coqui Trainer in-process.
 
     For UI-driven cancellation, this function is invoked from a subprocess script;
     the parent kills the subprocess. `cancel_flag` is checked in a callback hook.
     """
-    from trainer import Trainer, TrainerArgs  # type: ignore  # provided by coqui-tts
-    from TTS.config import load_config  # type: ignore
-    from TTS.tts.configs.vits_config import VitsConfig  # type: ignore
-    from TTS.tts.datasets import load_tts_samples  # type: ignore
-    from TTS.tts.models.vits import Vits  # type: ignore
-    from TTS.utils.audio import AudioProcessor  # type: ignore
+    _validate_manifest(cfg)
+
+    try:
+        from trainer import Trainer, TrainerArgs  # type: ignore  # provided by coqui-tts
+        from TTS.config import load_config  # type: ignore
+        from TTS.tts.configs.vits_config import VitsConfig  # type: ignore
+        from TTS.tts.datasets import load_tts_samples  # type: ignore
+        from TTS.tts.models.vits import Vits  # type: ignore
+        from TTS.utils.audio import AudioProcessor  # type: ignore
+    except Exception as e:
+        # coqui-tts pulls transformers; on transformers 4.50+ the lazy module
+        # system breaks with "Could not import module 'GenerationMixin'".
+        raise RuntimeError(
+            f"Не удалось импортировать Coqui-TTS ({type(e).__name__}: {e}). "
+            "Чаще всего это несовместимая версия transformers — установите "
+            "'pip install \"transformers>=4.43,<4.50\"' и попробуйте снова."
+        ) from e
 
     config_path = save_config(cfg)
     config = VitsConfig()
