@@ -162,6 +162,7 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
         from TTS.tts.configs.vits_config import VitsConfig  # type: ignore
         from TTS.tts.datasets import load_tts_samples  # type: ignore
         from TTS.tts.models.vits import Vits  # type: ignore
+        from TTS.tts.utils.text.tokenizer import TTSTokenizer  # type: ignore
         from TTS.utils.audio import AudioProcessor  # type: ignore
     except Exception as e:
         # coqui-tts pulls transformers; on transformers 4.50+ the lazy module
@@ -177,10 +178,13 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
     config.load_json(str(config_path))
 
     ap = AudioProcessor.init_from_config(config)
+    # The tokenizer must be initialized before the model, otherwise
+    # VitsDataset.__init__ crashes with `'NoneType' has no attribute 'use_phonemes'`.
+    tokenizer, config = TTSTokenizer.init_from_config(config)
     train_samples, eval_samples = load_tts_samples(
         config.datasets, eval_split=True, eval_split_size=0.05,
     )
-    model = Vits(config, ap, tokenizer=None, speaker_manager=None)
+    model = Vits(config, ap, tokenizer, speaker_manager=None)
 
     trainer_args = TrainerArgs(
         restore_path=str(cfg.pretrained_checkpoint) if cfg.pretrained_checkpoint else "",
