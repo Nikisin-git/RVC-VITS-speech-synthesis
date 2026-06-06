@@ -4,8 +4,9 @@
 # pytorch/pytorch#131662, поэтому минимум 2.4.0.
 
 # resemblyzer (и часть старых пакетов вокруг RVC) импортирует pkg_resources
-# из setuptools — на Python 3.12+ setuptools уже не ставится по умолчанию.
-setuptools>=68
+# из setuptools. Начиная с setuptools 81 модуль pkg_resources удалён,
+# поэтому фиксируем верхнюю границу.
+setuptools>=68,<81
 PySide6==6.6.3
 demucs==4.0.1
 deepfilternet==0.5.6
