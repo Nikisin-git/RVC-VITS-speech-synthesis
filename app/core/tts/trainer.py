@@ -165,7 +165,7 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
         raise RuntimeError(
             f"Не удалось импортировать Coqui-TTS ({type(e).__name__}: {e}). "
             "Чаще всего это несовместимая версия transformers — установите "
-            "'pip install \"transformers>=4.43,<4.50\"' и попробуйте снова."
+            "'pip install \"transformers>=4.57,<5.0\"' и попробуйте снова."
         ) from e
 
     config_path = save_config(cfg)
