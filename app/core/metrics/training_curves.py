@@ -52,8 +52,11 @@ _TTS_GAN_PAIR = ("loss_0", "loss_1")
 def _find_event_dirs(root: Path) -> list[Path]:
     """Find every directory that contains a tfevents file under root."""
     seen: set[Path] = set()
-    for p in root.rglob("events.out.tfevents.*"):
-        seen.add(p.parent)
+    # tfevents files are usually 'events.out.tfevents.*' (PyTorch/Coqui) but
+    # we also match the older 'tfevents.*' just in case.
+    for pattern in ("events.out.tfevents.*", "tfevents.*"):
+        for p in root.rglob(pattern):
+            seen.add(p.parent)
     return sorted(seen)
 
 

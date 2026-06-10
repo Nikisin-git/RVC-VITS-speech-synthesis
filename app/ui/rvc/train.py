@@ -136,8 +136,11 @@ class RvcTrainWindow(QWidget):
         if self._zip.isChecked():
             args.append("--create-zip")
 
-        from app.config import TRAINING_DIR
-        chart_dir = TRAINING_DIR / "logs" / self._name.text()
+        # RVC writes its tfevents into the vendored experiment dir during
+        # training; the final files are copied into TRAINING_DIR/logs only
+        # AFTER training completes. Point the live chart at the active dir.
+        from rvc_core._workspace import vendored_exp_dir
+        chart_dir = vendored_exp_dir(self._name.text())
         dlg = ProgressDialog(
             "Обучение голосовой модели...",
             show_log=True, determinate=True, parent=self,

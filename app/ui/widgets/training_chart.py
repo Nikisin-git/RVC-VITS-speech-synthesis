@@ -67,16 +67,28 @@ class TrainingChartWidget(QWidget):
             return
         try:
             from app.core.metrics.training_curves import (
-                _RVC_SCALARS, _TTS_SCALARS, _match_curve, ema_smooth, read_scalars,
+                _RVC_SCALARS, _TTS_SCALARS, _find_event_dirs, _match_curve,
+                ema_smooth, read_scalars,
             )
-        except Exception:
+        except Exception as e:
+            self._placeholder.setText(f"Ошибка импорта: {e}")
+            return
+
+        # Diagnostics first: tell the user what we see at the path so a wrong
+        # event_dir or a missing tensorboard package becomes obvious.
+        event_dirs = _find_event_dirs(self._event_dir)
+        if not event_dirs:
+            self._placeholder.setText(
+                f"Tfevents ещё не созданы в {self._event_dir}. "
+                "Это нормально в первые секунды обучения; если сообщение не "
+                "уходит — проверьте, что путь к каталогу логов верный."
+            )
             return
 
         try:
             scalars = read_scalars(self._event_dir)
-        except Exception:
-            return
-        if not scalars:
+        except Exception as e:
+            self._placeholder.setText(f"Не удалось прочитать события: {e}")
             return
 
         keys = _RVC_SCALARS if self._framework == "rvc" else _TTS_SCALARS
@@ -84,21 +96,29 @@ class TrainingChartWidget(QWidget):
 
         self._ax.clear()
         drew_anything = False
+        total_points = 0
         for (short, _), colour in zip(keys.items(), palette):
             c = _match_curve(scalars, short)
             if c is None or not c.values:
                 continue
+            total_points += len(c.values)
             self._ax.plot(c.steps, c.values, color=colour, alpha=0.18, linewidth=0.8)
             self._ax.plot(c.steps, ema_smooth(c.values, 0.7),
                           color=colour, linewidth=1.6, label=short)
             drew_anything = True
 
         if not drew_anything:
+            tags = sorted(scalars.keys())[:6]
+            self._placeholder.setText(
+                f"События найдены ({len(scalars)} тегов), но ни один из "
+                f"ожидаемых лоссов ещё не записан. Первые теги: {', '.join(tags)}"
+            )
             return
 
         self._placeholder.hide()
         self._ax.set_xlabel("Шаг обучения")
         self._ax.set_ylabel("Значение функции потерь")
+        self._ax.set_title(f"Шагов записано: {total_points}", fontsize=9, loc="right", color="#888")
         self._ax.grid(True, alpha=0.25)
         self._ax.set_yscale("symlog", linthresh=0.5)
         self._ax.legend(loc="center left", bbox_to_anchor=(1.02, 0.5),
