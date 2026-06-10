@@ -230,9 +230,29 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
     run_dir = max(run_dirs, key=lambda p: p.stat().st_mtime) if run_dirs else weights_dir
     best_model = run_dir / "best_model.pth"
     run_config = run_dir / "config.json"
-    return {
+    result = {
         "weights_dir": str(run_dir),
         "config": str(run_config if run_config.exists() else config_path),
         "model": str(best_model) if best_model.exists() else "",
     }
+
+    try:
+        from app.core.metrics.training_curves import generate_curves
+        ckpt_steps = sorted({
+            int(p.stem.rsplit("_", 1)[-1])
+            for p in run_dir.glob("best_model_*.pth")
+            if p.stem.rsplit("_", 1)[-1].isdigit()
+        })
+        plots = generate_curves(
+            event_root=run_dir, output_dir=run_dir,
+            framework="tts", checkpoint_steps=ckpt_steps or None,
+        )
+        if plots.get("training_curves"):
+            result["training_curves"] = plots["training_curves"]
+        if plots.get("gan_balance"):
+            result["gan_balance"] = plots["gan_balance"]
+    except Exception as e:
+        print(f"WARN: failed to render training curves: {e}", flush=True)
+
+    return result
 

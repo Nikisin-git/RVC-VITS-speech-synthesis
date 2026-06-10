@@ -30,5 +30,7 @@ dependencies:
       - scipy>=1.11
       - tqdm
       - PyYAML
+      - matplotlib>=3.7
+      - tensorboard>=2.13
       - coqui-tts>=0.24
       - "transformers>=4.57,<5.0"

@@ -120,5 +120,25 @@ def train_full(cfg: RvcTrainConfig, cancel_flag: Path | None = None) -> dict:
         result["zip"] = str(zip_path)
 
     (logs_dir / "summary.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    # Render training curves into PNGs alongside the weights for the report.
+    try:
+        from app.core.metrics.training_curves import generate_curves
+        ckpt_steps = sorted({
+            int(p.stem.rsplit("_", 1)[-1].lstrip("s"))
+            for p in weights_dir.glob(f"{cfg.model_name}_e*_s*.pth")
+            if p.stem.rsplit("_", 1)[-1].lstrip("s").isdigit()
+        })
+        plots = generate_curves(
+            event_root=logs_dir, output_dir=logs_dir,
+            framework="rvc", checkpoint_steps=ckpt_steps or None,
+        )
+        if plots.get("training_curves"):
+            result["training_curves"] = plots["training_curves"]
+        if plots.get("gan_balance"):
+            result["gan_balance"] = plots["gan_balance"]
+    except Exception as e:
+        print(f"WARN: failed to render training curves: {e}", flush=True)
+
     print(f"[rvc] training done: {result}", flush=True)
     return result

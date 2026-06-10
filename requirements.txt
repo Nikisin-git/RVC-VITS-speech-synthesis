@@ -25,6 +25,12 @@ numpy>=1.24,<2.0
 scipy>=1.11
 tqdm
 PyYAML
+# Used by the training-curves renderer (live chart in ProgressDialog and the
+# final PNGs alongside the weights). matplotlib also pulled transitively by
+# librosa, tensorboard by torch/coqui-tts — pin explicitly so renderer code
+# can rely on them.
+matplotlib>=3.7
+tensorboard>=2.13
 coqui-tts>=0.24
 # coqui-tts 0.27.x требует transformers>=4.57, но transformers 5.x
 # реорганизовал lazy-импорты и coqui падает с непонятным

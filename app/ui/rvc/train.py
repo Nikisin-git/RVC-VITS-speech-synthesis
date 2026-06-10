@@ -136,7 +136,13 @@ class RvcTrainWindow(QWidget):
         if self._zip.isChecked():
             args.append("--create-zip")
 
-        dlg = ProgressDialog("Обучение голосовой модели...", show_log=True, determinate=True, parent=self)
+        from app.config import TRAINING_DIR
+        chart_dir = TRAINING_DIR / "logs" / self._name.text()
+        dlg = ProgressDialog(
+            "Обучение голосовой модели...",
+            show_log=True, determinate=True, parent=self,
+            chart_event_dir=chart_dir, chart_framework="rvc",
+        )
         state = ProgressState()
 
         worker = ProcessWorker("rvc_train", SCRIPTS_DIR / "run_rvc_train.py", args)

@@ -140,7 +140,15 @@ class TtsTrainWindow(QWidget):
             "--cancel-flag", str(cancel_flag),
         ]
 
-        dlg = ProgressDialog("Обучение TTS-модели...", show_log=True, determinate=True, parent=self)
+        # The trainer writes events.out.tfevents.* into model_dir(name); the
+        # live chart polls anything under that root.
+        from app.core.tts.trainer import model_dir as _tts_model_dir
+        chart_dir = _tts_model_dir(self._name.text())
+        dlg = ProgressDialog(
+            "Обучение TTS-модели...",
+            show_log=True, determinate=True, parent=self,
+            chart_event_dir=chart_dir, chart_framework="tts",
+        )
         state = ProgressState()
         worker = ProcessWorker("tts_train", SCRIPTS_DIR / "run_vits_train.py", args)
         worker.set_cancel_flag(cancel_flag)
