@@ -81,23 +81,66 @@ def _write_filelist(exp_dir: Path, sr: str, version: str, has_f0: bool, spk_id: 
     print(f"[rvc_core.train] filelist: {len(rows)} rows", flush=True)
 
 
+def _gpu_lacks_tensor_cores() -> bool:
+    """Return True for Nvidia consumer cards that lack Tensor Cores.
+    On those (GTX 16xx Turing, GTX 10xx Pascal, etc.) fp16 is software-
+    emulated and slower than fp32, so we want to disable mixed precision.
+    """
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            return False
+        name = torch.cuda.get_device_name(0).lower()
+        bad_substrings = ("gtx 16", "gtx 15", "gtx 10", "gtx titan", "mx ")
+        return any(s in name for s in bad_substrings)
+    except Exception:
+        return False
+
+
 def _write_config(exp_dir: Path, sr: str, version: str) -> None:
     """Always overwrite config.json so a switched sr/version doesn't leak from
-    a previous run inside the same experiment directory. Also reduce the
-    log_interval from the vendor default of 200 — on small datasets one
-    epoch is well under 200 steps and the user sees no progress for many
-    minutes between log lines (looks like a freeze)."""
+    a previous run inside the same experiment directory. Also adjust two
+    knobs that the vendor defaults set too aggressively:
+
+    * log_interval -> 25 (down from 200) so progress shows up on small
+      datasets where an epoch is under 200 steps.
+    * fp16_run -> False on consumer GPUs without Tensor Cores. fp16 on
+      those cards is software-emulated and runs slower than fp32.
+    """
     import json as _json
     src = _paths.vendored_config(sr, version)
     dst = exp_dir / "config.json"
     shutil.copy2(src, dst)
     try:
         data = _json.loads(dst.read_text(encoding="utf-8"))
-        data.setdefault("train", {})["log_interval"] = 25
+        train_cfg = data.setdefault("train", {})
+        train_cfg["log_interval"] = 25
+        if _gpu_lacks_tensor_cores():
+            train_cfg["fp16_run"] = False
+            print("[rvc_core] GPU без Tensor Cores → fp16_run=False", flush=True)
         dst.write_text(_json.dumps(data, indent=2), encoding="utf-8")
     except Exception:
-        # If anything goes wrong leave the vendor config as-is rather than
-        # crashing the run.
+        pass
+
+
+def _enable_lightweight_logging() -> None:
+    """Stub out plot_spectrogram_to_numpy inside the vendored Trainer.
+    Every log step it would render three mel-spectrograms via matplotlib
+    and push them to TensorBoard as PNGs — on Windows with the project in
+    OneDrive's Documents folder this dominates wall-clock time (~0.5-1 s
+    per render). Replace with a tiny zeros tensor; loss scalars still get
+    written to TB normally. Toggle off with VOICEGEN_RVC_HEAVY_LOG=1.
+    """
+    if os.environ.get("VOICEGEN_RVC_HEAVY_LOG") == "1":
+        return
+    try:
+        import numpy as _np
+        from infer.lib.train import utils as _utils
+        _utils.plot_spectrogram_to_numpy = lambda *a, **kw: _np.zeros(
+            (8, 8, 4), dtype=_np.uint8
+        )
+        print("[rvc_core] mel-spectrogram TB plotting → no-op (быстрее)", flush=True)
+    except Exception:
         pass
 
 
@@ -174,8 +217,12 @@ def main() -> int:
     # does not exist'.
     (vendored_workspace() / "assets" / "weights").mkdir(parents=True, exist_ok=True)
 
+    # Headless matplotlib backend — saves ~2s probing on Windows.
+    os.environ.setdefault("MPLBACKEND", "Agg")
+
     with chdir(vendored_workspace()):
         sys.argv = argv
+        _enable_lightweight_logging()
         print(f"[rvc_core.train] argv={argv[1:]}", flush=True)
         runpy.run_path(str(script), run_name="__main__")
 

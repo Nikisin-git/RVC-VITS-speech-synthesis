@@ -18,7 +18,7 @@ class TrainingChartWidget(QWidget):
         self,
         event_dir: Path,
         framework: str,
-        refresh_seconds: int = 30,
+        refresh_seconds: int = 60,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
