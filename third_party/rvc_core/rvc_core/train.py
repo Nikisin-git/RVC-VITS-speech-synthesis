@@ -83,67 +83,21 @@ def _write_filelist(exp_dir: Path, sr: str, version: str, has_f0: bool, spk_id: 
 
 def _write_config(exp_dir: Path, sr: str, version: str) -> None:
     """Always overwrite config.json so a switched sr/version doesn't leak from
-    a previous run inside the same experiment directory. Also adjust a few
-    knobs that the vendor defaults set too aggressively for small / mid
-    datasets running on a single consumer GPU:
-
-    * log_interval -> 25 (vendor default 200; smaller so progress shows up
-      every few seconds on a 600-700 sample dataset).
-    * fp16_run is forced OFF when the active CUDA device is from the
-      GTX 16xx / GTX 15xx / GTX 10xx families. These cards report compute
-      capability 6.x or 7.5 but have no Tensor Cores, so fp16 is software-
-      emulated and runs noticeably slower than fp32 on real workloads.
-    """
+    a previous run inside the same experiment directory. Also reduce the
+    log_interval from the vendor default of 200 — on small datasets one
+    epoch is well under 200 steps and the user sees no progress for many
+    minutes between log lines (looks like a freeze)."""
     import json as _json
     src = _paths.vendored_config(sr, version)
     dst = exp_dir / "config.json"
     shutil.copy2(src, dst)
     try:
         data = _json.loads(dst.read_text(encoding="utf-8"))
-        train_cfg = data.setdefault("train", {})
-        train_cfg["log_interval"] = 25
-        if _gpu_lacks_tensor_cores():
-            train_cfg["fp16_run"] = False
-            print("[rvc_core] GPU без Tensor Cores → forced fp16_run=False", flush=True)
+        data.setdefault("train", {})["log_interval"] = 25
         dst.write_text(_json.dumps(data, indent=2), encoding="utf-8")
     except Exception:
-        pass
-
-
-def _gpu_lacks_tensor_cores() -> bool:
-    """Return True for Nvidia consumer cards that report a CUDA cap >= 7.0
-    but have no Tensor Cores (Turing GTX 16xx) or are below 7.0 (Pascal).
-    """
-    try:
-        import torch
-        if not torch.cuda.is_available():
-            return False
-        name = torch.cuda.get_device_name(0).lower()
-        bad_substrings = ("gtx 16", "gtx 15", "gtx 10", "gtx titan", "mx ")
-        return any(s in name for s in bad_substrings)
-    except Exception:
-        return False
-
-
-def _enable_lightweight_logging() -> None:
-    """Skip matplotlib mel-spectrogram rendering in the vendored Trainer.
-    On Windows with OneDrive watching the output folder, those three
-    figures per log step (rendered via plot_spectrogram_to_numpy) are by
-    far the most expensive part of summarize() — 0.5-1.0 s each. Replace
-    the plot function with a tiny np.zeros so summarize() returns instantly
-    and the optimizer can keep stepping.
-    """
-    if os.environ.get("VOICEGEN_RVC_HEAVY_LOG") == "1":
-        return
-    try:
-        import numpy as _np
-        from infer.lib.train import utils as _utils
-        _utils.plot_spectrogram_to_numpy = lambda *a, **kw: _np.zeros(
-            (8, 8, 4), dtype=_np.uint8
-        )
-        print("[rvc_core] mel-spectrogram TB plotting → no-op (faster training)", flush=True)
-    except Exception:
-        # If the patch fails, fall back to the original (slow) behaviour.
+        # If anything goes wrong leave the vendor config as-is rather than
+        # crashing the run.
         pass
 
 
@@ -161,10 +115,7 @@ def main() -> int:
     p.add_argument("--gpu-index", default="0")
     p.add_argument("--has-f0", type=int, default=1, choices=[0, 1])
     p.add_argument("--save-latest", type=int, default=1, choices=[0, 1])
-    # Caching the dataset in GPU memory removes the disk-read bottleneck
-    # entirely; safe to default ON for the small datasets typical of RVC
-    # fine-tuning (<2000 fragments fit in 6 GB VRAM with batch_size <= 8).
-    p.add_argument("--cache-gpu", type=int, default=1, choices=[0, 1])
+    p.add_argument("--cache-gpu", type=int, default=0, choices=[0, 1])
     p.add_argument("--save-every-weights", type=int, default=1, choices=[0, 1])
     p.add_argument("--cancel-flag")
     args = p.parse_args()
@@ -223,13 +174,8 @@ def main() -> int:
     # does not exist'.
     (vendored_workspace() / "assets" / "weights").mkdir(parents=True, exist_ok=True)
 
-    # Tell matplotlib to use a headless backend before anything inside the
-    # vendored training imports it. Saves the ~2s backend probe on Windows.
-    os.environ.setdefault("MPLBACKEND", "Agg")
-
     with chdir(vendored_workspace()):
         sys.argv = argv
-        _enable_lightweight_logging()
         print(f"[rvc_core.train] argv={argv[1:]}", flush=True)
         runpy.run_path(str(script), run_name="__main__")
 
