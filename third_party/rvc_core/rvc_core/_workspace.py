@@ -21,7 +21,46 @@ def vendored_workspace() -> Path:
     return rvc_core.VENDORED_PATH
 
 
+def _ensure_logs_redirected() -> None:
+    """If VOICEGEN_RVC_LOGS is set, transparently send <vendored>/logs there
+    via a Windows directory junction. Lets the user keep RVC's heavy disk
+    traffic (tfevents flushes, .pth snapshots) outside OneDrive/Documents
+    without touching the upstream code that hardcodes a relative 'logs/'
+    path inside its working directory.
+    """
+    target = os.environ.get("VOICEGEN_RVC_LOGS")
+    if not target:
+        return
+    target_path = Path(target).resolve()
+    target_path.mkdir(parents=True, exist_ok=True)
+
+    logs_link = vendored_workspace() / "logs"
+    if logs_link.exists() or logs_link.is_symlink():
+        # Already pointing where the user asked? Nothing to do.
+        try:
+            if logs_link.resolve() == target_path:
+                return
+        except OSError:
+            pass
+        # Existing 'logs' is something else — don't clobber it.
+        return
+
+    try:
+        # Try a junction first (no admin required on Windows).
+        if os.name == "nt":
+            import subprocess
+            subprocess.run(
+                ["cmd", "/c", "mklink", "/J", str(logs_link), str(target_path)],
+                check=True, capture_output=True,
+            )
+        else:
+            os.symlink(target_path, logs_link, target_is_directory=True)
+    except Exception as e:
+        print(f"WARN: cannot redirect RVC logs to {target_path}: {e}", flush=True)
+
+
 def vendored_exp_dir(exp_name: str) -> Path:
+    _ensure_logs_redirected()
     d = vendored_workspace() / "logs" / exp_name
     d.mkdir(parents=True, exist_ok=True)
     return d
