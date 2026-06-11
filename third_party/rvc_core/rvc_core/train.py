@@ -83,10 +83,22 @@ def _write_filelist(exp_dir: Path, sr: str, version: str, has_f0: bool, spk_id: 
 
 def _write_config(exp_dir: Path, sr: str, version: str) -> None:
     """Always overwrite config.json so a switched sr/version doesn't leak from
-    a previous run inside the same experiment directory."""
+    a previous run inside the same experiment directory. Also reduce the
+    log_interval from the vendor default of 200 — on small datasets one
+    epoch is well under 200 steps and the user sees no progress for many
+    minutes between log lines (looks like a freeze)."""
+    import json as _json
     src = _paths.vendored_config(sr, version)
     dst = exp_dir / "config.json"
     shutil.copy2(src, dst)
+    try:
+        data = _json.loads(dst.read_text(encoding="utf-8"))
+        data.setdefault("train", {})["log_interval"] = 25
+        dst.write_text(_json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        # If anything goes wrong leave the vendor config as-is rather than
+        # crashing the run.
+        pass
 
 
 def main() -> int:
