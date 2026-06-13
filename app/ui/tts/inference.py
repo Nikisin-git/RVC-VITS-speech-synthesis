@@ -120,8 +120,18 @@ class TtsInferenceWindow(QWidget):
             out = data.get("output")
             if out:
                 self._player.load(Path(out))
+            parts: list[str] = []
             wer = data.get("wer")
-            self._metrics.setText(f"WER: {wer:.3f}" if wer is not None else "WER недоступен.")
+            secs = data.get("secs")
+            if wer is not None:
+                parts.append(f"WER: {wer:.3f}")
+            elif "wer_error" in data:
+                parts.append(f"WER: ошибка ({data['wer_error']})")
+            if secs is not None:
+                parts.append(f"SECS: {secs:.3f}")
+            elif "secs_error" in data:
+                parts.append(f"SECS: {data['secs_error']}")
+            self._metrics.setText(" | ".join(parts) if parts else "Метрики недоступны.")
             dlg.finish_success()
 
         worker.finished.connect(_done)

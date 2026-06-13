@@ -115,6 +115,22 @@ def train_full(cfg: RvcTrainConfig, cancel_flag: Path | None = None) -> dict:
         "final_index": str(final_index) if final_index else None,
     }
 
+    # Save one representative audio fragment from the training set as
+    # reference_speaker.wav next to the weights. SECS at inference time
+    # uses this to measure output↔target-speaker similarity, which is the
+    # canonical metric — comparing to the input audio (a different speaker)
+    # would only measure how poorly the conversion erased the source voice.
+    try:
+        gt_wavs_dir = logs_dir / "0_gt_wavs"
+        if gt_wavs_dir.is_dir():
+            samples = sorted(gt_wavs_dir.glob("*.wav"))
+            if samples:
+                ref_dst = weights_dir / "reference_speaker.wav"
+                shutil.copy2(samples[len(samples) // 2], ref_dst)
+                result["reference_speaker"] = str(ref_dst)
+    except Exception as e:
+        print(f"WARN: failed to save reference_speaker.wav: {e}", flush=True)
+
     if cfg.create_zip and final_pth and final_index:
         zip_path = _zip_final(cfg.model_name, final_pth, final_index)
         result["zip"] = str(zip_path)

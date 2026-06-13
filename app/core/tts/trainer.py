@@ -236,6 +236,21 @@ def train(cfg: TtsTrainConfig, cancel_flag: Path | None = None) -> dict:
         "model": str(best_model) if best_model.exists() else "",
     }
 
+    # Save one representative WAV from the training set as
+    # reference_speaker.wav for SECS computation at inference time —
+    # SECS must compare output to the target speaker, not to the user's
+    # typed prompt (which is text, no speaker embedding) or to anything
+    # else.
+    try:
+        import shutil as _sh
+        wavs = sorted(cfg.audio_dir.glob("*.wav"))
+        if wavs:
+            ref_dst = run_dir / "reference_speaker.wav"
+            _sh.copy2(wavs[len(wavs) // 2], ref_dst)
+            result["reference_speaker"] = str(ref_dst)
+    except Exception as e:
+        print(f"WARN: failed to save reference_speaker.wav: {e}", flush=True)
+
     try:
         from app.core.metrics.training_curves import generate_curves
         ckpt_steps = sorted({

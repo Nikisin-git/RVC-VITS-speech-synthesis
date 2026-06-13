@@ -84,8 +84,25 @@ def main() -> int:
 
             try:
                 from app.core.metrics.secs import compute_secs
-                result["secs"] = compute_secs(Path(args.input), out_path)
-                print(f"SECS: {result['secs']:.3f}", flush=True)
+                # SECS must compare output to the TARGET speaker, not to the
+                # input — comparing to the input only measures how poorly RVC
+                # erased the source voice. Look for reference_speaker.wav next
+                # to the .pth (saved during training). Fall back to the input
+                # with a warning if it is missing so old models still work.
+                ref_path = Path(args.pth).parent / "reference_speaker.wav"
+                if ref_path.exists():
+                    result["secs"] = compute_secs(ref_path, out_path)
+                    result["secs_reference"] = str(ref_path)
+                    print(f"SECS: {result['secs']:.3f} (reference: {ref_path.name})", flush=True)
+                else:
+                    result["secs"] = compute_secs(Path(args.input), out_path)
+                    result["secs_reference"] = "input (fallback)"
+                    print(
+                        f"SECS: {result['secs']:.3f} (WARN: reference_speaker.wav не найден "
+                        f"рядом с моделью — сравниваем с входом, метрика не каноническая. "
+                        f"Переобучите модель чтобы получить настоящий референс.)",
+                        flush=True,
+                    )
             except Exception as se:
                 import traceback
                 print(f"WARN: SECS failed: {type(se).__name__}: {se}", flush=True)

@@ -48,8 +48,33 @@ def main() -> int:
                 from app.core.metrics.wer import wer_from_text
                 wer = wer_from_text(text, out_path, language=args.language).get("wer")
                 result["wer"] = wer
+                print(f"WER: {wer:.3f}", flush=True)
             except Exception as me:
                 print(f"WARN: WER failed: {me}", flush=True)
+                result["wer_error"] = str(me)
+
+            # SECS for TTS only makes sense against a sample of the target
+            # speaker; without one we'd be comparing to the user's prompt
+            # text (no audio embedding) or to the model's own output (~1.0
+            # by definition). The TTS trainer saves reference_speaker.wav
+            # next to best_model.pth; use it if present.
+            try:
+                from app.core.metrics.secs import compute_secs
+                ref_path = Path(args.generator).parent / "reference_speaker.wav"
+                if ref_path.exists():
+                    result["secs"] = compute_secs(ref_path, out_path)
+                    result["secs_reference"] = str(ref_path)
+                    print(f"SECS: {result['secs']:.3f} (reference: {ref_path.name})", flush=True)
+                else:
+                    print(
+                        "SECS: пропущен (reference_speaker.wav не найден рядом с моделью; "
+                        "переобучите модель, чтобы получить эталонный сэмпл говорящего).",
+                        flush=True,
+                    )
+                    result["secs_error"] = "reference_speaker.wav not found"
+            except Exception as se:
+                print(f"WARN: SECS failed: {type(se).__name__}: {se}", flush=True)
+                result["secs_error"] = f"{type(se).__name__}: {se}"
         print(f"RESULT_JSON={json.dumps(result, ensure_ascii=False)}", flush=True)
         return 0
     except Exception as e:
