@@ -39,6 +39,4 @@ python scripts/run_rvc_infer.py --pth model.pth --index model.index --input src.
 python scripts/run_vits_infer.py --generator G.pth --config config.json --text "Привет"
 ```
 
-## Лицензия
 
-MIT — см. [LICENSE](LICENSE).
