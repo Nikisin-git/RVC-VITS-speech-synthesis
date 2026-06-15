@@ -16,8 +16,6 @@ pip install -e third_party/rvc_core   # форк ядра RVC без Gradio
 python -m app.main
 ```
 
-Подробные шаги, headless-режим, Docker, миграция на сервер — в [DEPLOYMENT.md](DEPLOYMENT.md).
-
 ## Системные требования
 
 - ОС: Windows 10/11 (x64) или Ubuntu 22.04+. macOS не поддерживается.
@@ -26,7 +24,7 @@ python -m app.main
 - Системные зависимости: FFmpeg 6.0+, espeak-ng (для русского TTS).
 
 
-См. раздел «Структура проекта» в [DEPLOYMENT.md](DEPLOYMENT.md).
+См. раздел «Структура проекта» в [Readme.md](Readme.md).
 
 ## Headless-запуск
 
@@ -37,5 +35,394 @@ python scripts/run_demucs.py --input track.wav --format wav
 python scripts/run_rvc_infer.py --pth model.pth --index model.index --input src.wav --pitch 0
 python scripts/run_vits_infer.py --generator G.pth --config config.json --text "Привет"
 ```
+##Развертывание приложения
+### 1.1. Способ A — через Conda (рекомендуется)
 
+#### Шаг 1. Установка системных зависимостей
+
+**Windows:**
+1. Установите [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (Python 3.10, x64).
+2. Установите [NVIDIA Driver](https://www.nvidia.com/Download/index.aspx) (последний studio/game ready).
+3. Установите [CUDA Toolkit 11.8 или 12.1](https://developer.nvidia.com/cuda-toolkit-archive).
+4. FFmpeg и espeak-ng доставляются portable-бинарниками в комплекте инсталлятора либо ставятся вручную:
+   - FFmpeg: [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) → распаковать, добавить `bin/` в `PATH`.
+   - espeak-ng: [GitHub releases](https://github.com/espeak-ng/espeak-ng/releases) → установить `.msi`.
+
+**Ubuntu 22.04+:**
+```bash
+sudo apt update
+sudo apt install -y ffmpeg espeak-ng build-essential
+# NVIDIA-драйвер + CUDA Toolkit ставятся согласно официальной инструкции NVIDIA
+# https://developer.nvidia.com/cuda-downloads
+```
+
+#### Шаг 2. Клонирование репозитория
+
+```bash
+git clone https://github.com/Nikisin-git/RVC-VITS-speech-synthesis.git
+cd RVC-VITS-speech-synthesis
+```
+
+#### Шаг 3. Создание conda-окружения
+
+```bash
+conda env create -f environment.yml
+conda activate voicegen
+```
+
+Содержимое `environment.yml` (фрагмент):
+
+```yaml
+name: voicegen
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch=2.1.2
+  - torchaudio=2.1.2
+  - pytorch-cuda=11.8
+  - ffmpeg=6.0
+  - pip:
+      - PySide6==6.6.3
+      - demucs==4.0.1
+      - deepfilternet==0.5.6
+      - silero-vad
+      - librosa
+      - soundfile
+      - pydub
+      - pedalboard==0.9.12
+      - openai-whisper
+      - resemblyzer
+      - transliterate
+      - phonemizer
+      - coqui-tts  # форк idiap/coqui-ai-TTS
+      # RVC устанавливается из third_party/rvc_core
+```
+
+#### Шаг 4. Установка форка RVC
+
+```bash
+pip install -e third_party/rvc_core
+pip install faiss-cpu fairseq torchcrepe praat-parselmouth pyworld
+```
+
+В `third_party/rvc_core/` вендорено ядро [RVC-Project](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) (commit `7ef1986`) без Gradio-обёртки, плюс CLI-точки `rvc_core.preprocess`, `rvc_core.extract_f0`, `rvc_core.extract_feature`, `rvc_core.train`, `rvc_core.train_index`, `rvc_core.infer_cli`.
+
+#### Шаг 5. Скачайте предобученные веса RVC
+
+Без них обучение пойдёт «с нуля» (очень долго и плохо), а инференс не запустится вообще. Скачайте из официального HuggingFace-репозитория.
+
+**Linux / macOS (bash):**
+
+```bash
+mkdir -p third_party/rvc_core/rvc_core/_vendored/assets/{hubert,rmvpe,pretrained_v2}
+
+# HuBERT base (универсальный feature extractor)
+curl -L -o third_party/rvc_core/rvc_core/_vendored/assets/hubert/hubert_base.pt \
+    https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/hubert_base.pt
+
+# RMVPE (нейросетевой F0)
+curl -L -o third_party/rvc_core/rvc_core/_vendored/assets/rmvpe/rmvpe.pt \
+    https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/rmvpe.pt
+
+# Pretrained v2 (выберите частоту — обычно 40k для речи)
+for sr in 32k 40k 48k; do
+  curl -L -o "third_party/rvc_core/rvc_core/_vendored/assets/pretrained_v2/f0G${sr}.pth" \
+      "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0G${sr}.pth"
+  curl -L -o "third_party/rvc_core/rvc_core/_vendored/assets/pretrained_v2/f0D${sr}.pth" \
+      "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0D${sr}.pth"
+done
+```
+
+**Windows (PowerShell):**
+
+```powershell
+$assets = "third_party\rvc_core\rvc_core\_vendored\assets"
+New-Item -ItemType Directory -Force -Path "$assets\hubert", "$assets\rmvpe", "$assets\pretrained_v2" | Out-Null
+$base = "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main"
+
+curl.exe -L -o "$assets\hubert\hubert_base.pt" "$base/hubert_base.pt"
+curl.exe -L -o "$assets\rmvpe\rmvpe.pt"        "$base/rmvpe.pt"
+foreach ($sr in @("32k","40k","48k")) {
+    curl.exe -L -o "$assets\pretrained_v2\f0G$sr.pth" "$base/pretrained_v2/f0G$sr.pth"
+    curl.exe -L -o "$assets\pretrained_v2\f0D$sr.pth" "$base/pretrained_v2/f0D$sr.pth"
+}
+```
+
+> Команды **не работают** в обычном `cmd.exe` — там нет `for ... in (); do` с переносами строк и `${var}`. Используйте PowerShell или `installer/windows/download_rvc_weights.bat`.
+
+Суммарно ~2 ГБ. Качайте только нужную частоту (40k достаточно для большинства задач), чтобы сэкономить трафик.
+
+Можно положить ассеты в другое место и указать через переменную окружения:
+
+```bash
+export VOICEGEN_RVC_ASSETS=/path/to/rvc_assets   # Linux/macOS
+$env:VOICEGEN_RVC_ASSETS = "C:\path\to\rvc_assets"  # PowerShell
+```
+
+Структура каталога `VOICEGEN_RVC_ASSETS` должна совпадать с `assets/`: подпапки `hubert/`, `rmvpe/`, `pretrained_v2/`.
+
+#### Шаг 6. Запуск приложения
+
+```bash
+python -m app.main
+```
+
+При первом запуске будут скачаны предобученные модели (Demucs, DeepFilterNet, Whisper, RVC pretrained, VITS pretrained) в `user_data/cache/`.
+
+---
+
+### 1.2. Способ B — установщик-инсталлятор (Windows)
+
+1. Скачайте `VoiceGen-Setup-<version>.exe` со страницы релизов.
+2. Запустите от имени администратора.
+3. Инсталлятор автоматически:
+   - Установит Miniconda (если не установлена).
+   - Создаст окружение `voicegen` из `environment.yml`.
+   - Подложит FFmpeg как portable-бинарник в подпапку приложения (PATH не меняется глобально).
+   - Установит espeak-ng.
+   - При первом запуске скачает предобученные модели.
+   - Создаст ярлык на рабочем столе.
+
+Сборка инсталлятора локально: `installer/windows/inno_setup.iss` (Inno Setup 6+).
+
+---
+
+### 1.3. Способ C — Linux tar.gz архив
+
+```bash
+tar -xzf voicegen-<version>-linux-x64.tar.gz
+cd voicegen-<version>
+./install.sh        # вызывает installer/linux/install.sh
+./voicegen          # запуск
+```
+
+Скрипт `install.sh` создаёт conda-окружение и проверяет наличие `ffmpeg` и `espeak-ng` в системе.
+
+---
+
+## 2. Проверка окружения после установки
+
+При первом запуске приложение проверяет:
+1. Наличие CUDA-совместимого GPU (`torch.cuda.is_available()`).
+2. Версию драйвера NVIDIA и CUDA.
+3. Наличие FFmpeg в PATH.
+4. Свободное место на диске (минимум 5 ГБ).
+
+Результаты доступны в окне «i» главного меню. При отсутствии GPU кнопки обучения RVC/VITS будут заблокированы.
+
+Ручная проверка из консоли:
+```bash
+python -c "import torch; print('CUDA:', torch.cuda.is_available(), torch.version.cuda)"
+ffmpeg -version
+espeak-ng --version
+```
+
+---
+
+## 3. Миграция на удалённый сервер (headless-режим)
+
+Приложение спроектировано так, что ядро (`app/core/`) и CLI-скрипты (`scripts/`) работают независимо от Qt. Это позволяет запускать тяжёлые операции на сервере без GUI.
+
+### 3.1. Подготовка сервера
+
+Требования к серверу:
+- Ubuntu 22.04+ x86_64.
+- NVIDIA GPU + драйвер ≥ 525 + CUDA Toolkit 11.8 или 12.1.
+- Docker (опционально) или нативно установленный conda.
+
+### 3.2. Headless-запуск через CLI-скрипты
+
+Все тяжёлые операции имеют отдельные CLI-обёртки в `scripts/`. Примеры:
+
+```bash
+# Отделение вокала
+python scripts/run_demucs.py --input /data/audio.wav --out-dir /data/out --format wav
+
+# Шумоподавление
+python scripts/run_denoiser.py --input /data/audio.wav --out-dir /data/out --format wav
+
+# Обучение RVC
+python scripts/run_rvc_train.py \
+    --dataset-dir /data/dataset \
+    --model-name myvoice \
+    --sample-rate 40k \
+    --f0-method rmvpe_gpu \
+    --epochs 200 \
+    --save-every 10 \
+    --batch-size 12
+
+# Инференс RVC
+python scripts/run_rvc_infer.py \
+    --pth /models/myvoice.pth \
+    --index /models/myvoice.index \
+    --input /data/source.wav \
+    --output /data/result.wav \
+    --pitch 0 \
+    --index-rate 0.5
+
+# Обучение VITS
+python scripts/run_vits_train.py \
+    --audio-dir /data/dataset/wavs \
+    --manifest /data/dataset/manifest.csv \
+    --model-name mytts \
+    --epochs 500 \
+    --batch-size 16 \
+    --mode finetune
+
+# Инференс VITS
+python scripts/run_vits_infer.py \
+    --generator /models/mytts/G.pth \
+    --config /models/mytts/config.json \
+    --text "Привет, мир" \
+    --output /data/tts_out.wav \
+    --length-scale 1.0 \
+    --pitch-shift 0
+```
+
+Все скрипты пишут структурированный лог в stdout и параллельно в `user_data/logs/`.
+
+### 3.3. Docker-развёртывание
+
+Базовый образ: `nvidia/cuda:11.8.0-runtime-ubuntu22.04`.
+
+Пример `Dockerfile`:
+```dockerfile
+FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y \
+    wget git build-essential ffmpeg espeak-ng \
+    && rm -rf /var/lib/apt/lists/*
+
+# Miniconda
+RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh \
+    && bash /tmp/miniconda.sh -b -p /opt/conda \
+    && rm /tmp/miniconda.sh
+ENV PATH=/opt/conda/bin:$PATH
+
+WORKDIR /app
+COPY environment.yml /app/
+RUN conda env create -f environment.yml && conda clean -afy
+
+# Активация окружения по умолчанию
+SHELL ["conda", "run", "-n", "voicegen", "/bin/bash", "-c"]
+
+COPY . /app
+RUN pip install -e third_party/rvc_core
+
+ENV VOICEGEN_DATA_DIR=/data
+ENV VOICEGEN_CACHE_DIR=/data/cache
+VOLUME ["/data"]
+
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "voicegen", "python"]
+CMD ["-m", "app.main", "--help"]
+```
+
+Запуск контейнера с GPU:
+```bash
+docker build -t voicegen:latest .
+docker run --rm --gpus all \
+    -v /host/data:/data \
+    voicegen:latest \
+    scripts/run_rvc_infer.py --pth /data/model.pth --input /data/in.wav --output /data/out.wav
+```
+
+### 3.4. Переменные окружения
+
+| Переменная | Назначение | По умолчанию |
+|------------|-----------|--------------|
+| `VOICEGEN_DATA_DIR` | Корневой каталог `user_data/` | `<project>/user_data` |
+| `VOICEGEN_CACHE_DIR` | Каталог кэша моделей | `$VOICEGEN_DATA_DIR/cache` |
+| `VOICEGEN_LOG_LEVEL` | Уровень логирования | `INFO` |
+| `CUDA_VISIBLE_DEVICES` | Выбор GPU | `0` |
+| `PYTORCH_CUDA_ALLOC_CONF` | Тюнинг аллокатора PyTorch | — |
+
+---
+
+## 4. Подготовка датасета
+
+### 4.1. RVC (преобразование голоса)
+- 10 минут – 1 час чистой речи одного спикера.
+- WAV, моно, 40 kHz или 48 kHz.
+- Без музыки, без шумов (пропустить через блок предобработки).
+- Нарезка фрагментами 5–20 секунд (предпочтительно по VAD).
+
+### 4.2. VITS / TTS
+
+**Режим «с нуля»:** 10–20 часов аудио высокого качества одного спикера.
+**Режим «дообучения» (fine-tuning):** 10–30 минут.
+
+Структура датасета:
+```
+dataset/
+├── wavs/
+│   ├── utt_001.wav
+│   ├── utt_002.wav
+│   └── ...
+└── manifest.csv
+```
+
+Формат `manifest.csv` (LJSpeech, UTF-8, разделитель `|`, без заголовка):
+```
+utt_001.wav|Расшифровка первого фрагмента.
+utt_002.wav|Расшифровка второго фрагмента.
+```
+
+Валидация перед обучением: все упомянутые файлы существуют, кодировка UTF-8, корректный разделитель, отсутствие осиротевших записей.
+
+Скрипт автоматической подготовки манифеста: `scripts/build_tts_manifest.py` (обходит каталог `wavs/`, прогоняет каждый файл через Whisper для генерации первичной транскрипции, которую затем редактирует человек).
+
+---
+
+## 5. Решение типичных проблем
+
+| Проблема | Причина / решение |
+|----------|-------------------|
+| `CUDA out of memory` | Уменьшить `batch_size`. Для VRAM 6 ГБ — 4, 8 ГБ — 8, 12 ГБ — 12+. |
+| `torch.cuda.is_available() == False` | Проверить версии драйвера NVIDIA и CUDA Toolkit, переустановить PyTorch с правильным `pytorch-cuda`. |
+| `ffmpeg: command not found` | Добавить FFmpeg в `PATH` или подложить portable-бинарник в подпапку приложения. |
+| Битый чекпоинт после жёсткого прерывания | Чекпоинты пишутся атомарно через `.tmp` + `os.replace`. Загрузить предыдущий валидный из `TrainingModel/Assets/Weights/<имя_модели>/`. |
+| Ошибки фонемизатора для русского | Установить `espeak-ng`, проверить `espeak-ng --version`. |
+| Длинный путь в Windows (>260 симв.) | Имена результатов TTS усечены до 20 символов после транслитерации. Если путь всё равно длинный — переместить `user_data/` ближе к корню диска. |
+| Зависший дочерний процесс | UI вызывает `QProcess.kill()` через кнопку «Отмена». Промежуточные файлы удаляются автоматически. |
+| Долгое первое обучение | Это нормально: при первом запуске скачиваются предобученные модели (~3–5 ГБ суммарно). |
+
+---
+
+## 6. Сборка инсталлятора (для разработчиков)
+
+### Windows (Inno Setup)
+```bash
+# Сборка conda-pack бандла
+conda pack -n voicegen -o build/voicegen-env.tar.gz
+
+# Сборка установщика
+iscc installer/windows/inno_setup.iss
+# Результат: installer/windows/Output/VoiceGen-Setup-<version>.exe
+```
+
+### Linux (tar.gz)
+```bash
+bash installer/linux/build_tarball.sh
+# Результат: build/voicegen-<version>-linux-x64.tar.gz
+```
+
+---
+
+## 7. Чек-лист готовности к ship'у
+
+- [ ] `environment.yml` с зафиксированными версиями.
+- [ ] Все CLI-скрипты в `scripts/` проверены на headless-запуск.
+- [ ] Документация `README.md` + `DEPLOYMENT.md`.
+- [ ] Инсталлятор Windows протестирован на чистой системе.
+- [ ] Linux tar.gz протестирован на Ubuntu 22.04.
+- [ ] Dockerfile собирается и запускается с `--gpus all`.
+- [ ] Проверка окружения (`app/utils/env_check.py`) покрывает CUDA, FFmpeg, espeak-ng, свободное место.
+- [ ] Тесты `tests/` проходят на CI.
 
