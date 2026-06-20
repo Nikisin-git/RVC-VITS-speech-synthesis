@@ -109,6 +109,29 @@ def main() -> int:
                 traceback.print_exc()
                 result["secs_error"] = f"{type(se).__name__}: {se}"
 
+            # MCD: average spectral distance between target-speaker reference
+            # and synthesized output. Lower is better; <8 dB is good.
+            try:
+                from app.core.metrics.mcd import compute_mcd
+                ref_path = Path(args.pth).parent / "reference_speaker.wav"
+                if ref_path.exists():
+                    result["mcd"] = compute_mcd(ref_path, out_path)
+                    result["mcd_reference"] = str(ref_path)
+                    print(f"MCD: {result['mcd']:.2f} dB (reference: {ref_path.name})", flush=True)
+                else:
+                    result["mcd"] = compute_mcd(Path(args.input), out_path)
+                    result["mcd_reference"] = "input (fallback)"
+                    print(
+                        f"MCD: {result['mcd']:.2f} dB (WARN: reference_speaker.wav не найден — "
+                        f"сравниваем с входом, метрика не каноническая)",
+                        flush=True,
+                    )
+            except Exception as me:
+                import traceback
+                print(f"WARN: MCD failed: {type(me).__name__}: {me}", flush=True)
+                traceback.print_exc()
+                result["mcd_error"] = f"{type(me).__name__}: {me}"
+
         print(f"RESULT_JSON={json.dumps(result, ensure_ascii=False)}", flush=True)
         return 0
     except Exception as e:

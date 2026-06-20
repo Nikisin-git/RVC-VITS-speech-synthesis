@@ -24,6 +24,7 @@ def _format_metrics(data: dict) -> str:
     parts = []
     wer = data.get("wer")
     secs = data.get("secs")
+    mcd = data.get("mcd")
     if wer is not None:
         parts.append(f"WER: {wer:.3f}")
     elif "wer_error" in data:
@@ -32,6 +33,10 @@ def _format_metrics(data: dict) -> str:
         parts.append(f"SECS: {secs:.3f}")
     elif "secs_error" in data:
         parts.append(f"SECS: ошибка ({data['secs_error']})")
+    if mcd is not None:
+        parts.append(f"MCD: {mcd:.2f} dB")
+    elif "mcd_error" in data:
+        parts.append(f"MCD: ошибка ({data['mcd_error']})")
     return " | ".join(parts) if parts else "Метрики недоступны."
 
 

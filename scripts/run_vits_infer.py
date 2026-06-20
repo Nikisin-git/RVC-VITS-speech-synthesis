@@ -75,6 +75,25 @@ def main() -> int:
             except Exception as se:
                 print(f"WARN: SECS failed: {type(se).__name__}: {se}", flush=True)
                 result["secs_error"] = f"{type(se).__name__}: {se}"
+
+            # MCD: spectral distance vs the target-speaker reference. Same
+            # reference file as SECS; skip with a clear message if absent.
+            try:
+                from app.core.metrics.mcd import compute_mcd
+                ref_path = Path(args.generator).parent / "reference_speaker.wav"
+                if ref_path.exists():
+                    result["mcd"] = compute_mcd(ref_path, out_path)
+                    result["mcd_reference"] = str(ref_path)
+                    print(f"MCD: {result['mcd']:.2f} dB (reference: {ref_path.name})", flush=True)
+                else:
+                    print(
+                        "MCD: пропущен (reference_speaker.wav не найден рядом с моделью).",
+                        flush=True,
+                    )
+                    result["mcd_error"] = "reference_speaker.wav not found"
+            except Exception as me:
+                print(f"WARN: MCD failed: {type(me).__name__}: {me}", flush=True)
+                result["mcd_error"] = f"{type(me).__name__}: {me}"
         print(f"RESULT_JSON={json.dumps(result, ensure_ascii=False)}", flush=True)
         return 0
     except Exception as e:
