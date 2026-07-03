@@ -184,4 +184,4 @@ voice-synthesis-app/
 
 Описание всех окон и диалогов приложения (главное окно, «О приложении»,
 формы предобработки, обучения и инференса RVC/TTS, переиспользуемые виджеты)
-вынесено в отдельный документ: [FORMS.md](FORMS.md).
+вынесено в отдельный документ: [Form Description.md](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Form%20Description.md).
