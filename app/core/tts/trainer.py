@@ -39,6 +39,23 @@ def model_dir(model_name: str) -> Path:
     return d
 
 
+def _gpu_lacks_tensor_cores() -> bool:
+    """True for Nvidia consumer cards without Tensor Cores (GTX 16xx Turing,
+    GTX 10xx Pascal, MX, older Titan). On those, fp16 is software-emulated
+    and numerically unstable — mixed-precision GAN training diverges. We want
+    fp32 there. RTX / A-series / newer keep mixed precision.
+    """
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            return False
+        name = torch.cuda.get_device_name(0).lower()
+        bad = ("gtx 16", "gtx 15", "gtx 10", "gtx titan", "mx ")
+        return any(s in name for s in bad)
+    except Exception:
+        return False
+
+
 def _atomic_write(path: Path, payload: bytes) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_bytes(payload)
@@ -47,6 +64,16 @@ def _atomic_write(path: Path, payload: bytes) -> None:
 
 def build_coqui_config(cfg: TtsTrainConfig) -> dict:
     """Build a Coqui-TTS VITS config dict serializable to JSON."""
+    # fp16 GAN training diverges on cards without Tensor Cores (e.g. GTX 1660).
+    # This was the direct cause of a 200-epoch run collapsing into buzzing
+    # after ~12k steps: the generator/discriminator losses exploded together.
+    use_mixed = not _gpu_lacks_tensor_cores()
+
+    # Training from scratch on a small dataset is prone to GAN divergence.
+    # A lower LR keeps the adversarial pair in balance; fine-tuning from a
+    # pretrained checkpoint tolerates the standard 2e-4.
+    lr = 1e-4 if cfg.mode == TtsTrainMode.SCRATCH else 2e-4
+
     out = {
         "model": "vits",
         "run_name": cfg.model_name,
@@ -58,7 +85,9 @@ def build_coqui_config(cfg: TtsTrainConfig) -> dict:
         "save_checkpoints": True,
         "print_step": 25,
         "print_eval": True,
-        "mixed_precision": True,
+        "mixed_precision": use_mixed,
+        "lr_gen": lr,
+        "lr_disc": lr,
         "output_path": str(model_dir(cfg.model_name)),
         "datasets": [{
             "formatter": "ljspeech",
@@ -82,6 +111,8 @@ def build_coqui_config(cfg: TtsTrainConfig) -> dict:
     }
     if cfg.mode == TtsTrainMode.FINETUNE and cfg.pretrained_checkpoint:
         out["restore_path"] = str(cfg.pretrained_checkpoint)
+    if not use_mixed:
+        print("[tts] GPU без Tensor Cores → mixed_precision=False (стабильнее)", flush=True)
     return out
 
 

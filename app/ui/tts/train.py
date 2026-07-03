@@ -44,16 +44,31 @@ class TtsTrainWindow(QWidget):
 
         # mode
         mode_box = QGroupBox("Режим обучения")
-        mode_l = QHBoxLayout(mode_box)
+        mode_l = QVBoxLayout(mode_box)
+        radios = QHBoxLayout()
         self._rb_scratch = QRadioButton("С нуля (10–20 часов)")
         self._rb_finetune = QRadioButton("Дообучение (10–30 минут)")
         self._rb_finetune.setChecked(True)
         g = QButtonGroup(self)
         g.addButton(self._rb_scratch)
         g.addButton(self._rb_finetune)
-        mode_l.addWidget(self._rb_scratch)
-        mode_l.addWidget(self._rb_finetune)
+        radios.addWidget(self._rb_scratch)
+        radios.addWidget(self._rb_finetune)
+        mode_l.addLayout(radios)
+
+        # Pretrained checkpoint — required for fine-tuning. On a small dataset
+        # fine-tuning a pretrained VITS is the only way to avoid the GAN
+        # divergence that turns from-scratch runs into buzzing.
+        self._pretrained_label = QLabel(
+            "Базовый чекпойнт (.pth) для дообучения — обязателен в режиме «Дообучение»:")
+        mode_l.addWidget(self._pretrained_label)
+        self._dd_pretrained = DragDropArea(
+            "Перетащите базовую модель .pth", allowed_exts=(".pth",), single_file=True)
+        mode_l.addWidget(self._dd_pretrained)
         layout.addWidget(mode_box)
+
+        self._rb_scratch.toggled.connect(self._on_mode_changed)
+        self._on_mode_changed()
 
         # two columns
         cols = QHBoxLayout()
@@ -101,6 +116,12 @@ class TtsTrainWindow(QWidget):
             warn.setObjectName("error_label")
             layout.addWidget(warn)
 
+    def _on_mode_changed(self) -> None:
+        # Pretrained checkpoint only matters for fine-tuning.
+        finetune = self._rb_finetune.isChecked()
+        self._pretrained_label.setEnabled(finetune)
+        self._dd_pretrained.setEnabled(finetune)
+
     def _validate_name(self, text: str) -> None:
         ok, err = validate_model_name(text)
         self._name_error.setText("" if ok else (err or ""))
@@ -119,6 +140,20 @@ class TtsTrainWindow(QWidget):
             QMessageBox.warning(self, "GPU", "CUDA не обнаружена.")
             return
 
+        finetune = self._rb_finetune.isChecked()
+        pretrained = self._dd_pretrained.files()
+        if finetune and not pretrained:
+            reply = QMessageBox.warning(
+                self, "Дообучение без базовой модели",
+                "Выбран режим «Дообучение», но не указан базовый чекпойнт .pth.\n\n"
+                "Без него дообучение превращается в обучение с нуля, которое на "
+                "небольшом датасете обычно расходится и даёт на выходе жужжание.\n\n"
+                "Продолжить обучение с нуля?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                return
+
         audio_dir = Path(audio_files[0]).parent
         report = validate_manifest(Path(manifest[0]), audio_dir)
         if not report.ok:
@@ -128,17 +163,22 @@ class TtsTrainWindow(QWidget):
             QMessageBox.critical(self, "Манифест", msg)
             return
 
+        # Fine-tune only if a base checkpoint was actually provided; otherwise
+        # fall back to scratch so the trainer picks the from-scratch LR.
+        effective_finetune = finetune and bool(pretrained)
         cancel_flag = make_cancel_flag(f"tts_train_{self._name.text()}")
         args = [
             "--audio-dir", str(audio_dir),
             "--manifest", manifest[0],
             "--model-name", self._name.text(),
-            "--mode", "scratch" if self._rb_scratch.isChecked() else "finetune",
+            "--mode", "finetune" if effective_finetune else "scratch",
             "--epochs", str(int(self._epochs.value())),
             "--save-every", str(int(self._save_every.value())),
             "--batch-size", str(int(self._batch.value())),
             "--cancel-flag", str(cancel_flag),
         ]
+        if effective_finetune:
+            args += ["--pretrained", pretrained[0]]
 
         # The trainer writes events.out.tfevents.* into model_dir(name); the
         # live chart polls anything under that root.
