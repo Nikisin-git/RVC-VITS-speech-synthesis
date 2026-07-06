@@ -73,11 +73,11 @@ python convert_original_discriminator_checkpoint.py \
 set VOICEGEN_FINETUNE_HF_VITS=C:\ml\finetune-hf-vits
 
 python scripts\run_hf_vits_train.py ^
-  --manifest F:\Datasets\Andrey\metadata.csv ^
-  --audio-dir F:\Datasets\Andrey\wavs ^
-  --model-name Andrey_HF ^
+  --manifest F:\Datasets\[Manifest name]\metadata.csv ^
+  --audio-dir F:\Datasets\[Speaker Name]\wavs ^
+  --model-name [Enter your model name] ^
   --base-model .\mms-tts-rus-with-disc ^
-  --output-dir F:\hf_vits_finetune\Andrey ^
+  --output-dir F:\hf_vits_finetune\[Model Name] ^
   --epochs 100 ^
   --batch-size 8
 ```
