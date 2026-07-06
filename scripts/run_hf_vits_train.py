@@ -46,6 +46,19 @@ def _gpu_lacks_tensor_cores() -> bool:
         return False
 
 
+def _apply_transformers_compat() -> None:
+    """Inject symbols that newer transformers (4.57) dropped but that
+    finetune-hf-vits (written for ~4.35) still imports. Each shim is a no-op
+    or a thin re-export so the upstream `from transformers... import X` lines
+    succeed. Add entries here as new ImportErrors surface."""
+    try:
+        import transformers.utils as _tu
+        if not hasattr(_tu, "send_example_telemetry"):
+            _tu.send_example_telemetry = lambda *a, **k: None
+    except Exception as e:
+        print(f"WARN: transformers compat shim failed: {e}", flush=True)
+
+
 def _find_repo(explicit: str | None) -> Path:
     cand = explicit or os.environ.get("VOICEGEN_FINETUNE_HF_VITS")
     if not cand:
@@ -150,6 +163,12 @@ def main() -> int:
     # The upstream script imports load_dataset by name at module load, so also
     # patch the attribute it will look up after runpy imports it. runpy runs
     # the module fresh, so patching the datasets module object is enough.
+
+    # 3b. Compatibility shims: finetune-hf-vits targets transformers ~4.35,
+    # but our env pins 4.57 (required by coqui-tts). Provide symbols the
+    # newer transformers removed so the upstream `from ... import X` lines
+    # don't ImportError.
+    _apply_transformers_compat()
 
     # 4. Run the upstream trainer in-process from the repo directory.
     os.environ.setdefault("MPLBACKEND", "Agg")
