@@ -38,3 +38,4 @@ logs/
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+third_party/rvc_core/rvc_core/_vendored/assets/
