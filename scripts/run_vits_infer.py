@@ -1,5 +1,11 @@
 #!/usr/bin/env python
-"""CLI: VITS inference + optional WER metric."""
+"""CLI: VITS inference (Coqui or HuggingFace-Transformers) + optional metrics.
+
+The model format is auto-detected from config.json: a HF-Transformers VITS
+(`architectures: [VitsModel]`) routes to the transformers path, anything else
+to the Coqui path. This lets the same TTS form serve both a Coqui-trained
+model and a fine-tuned facebook/mms-tts-rus derivative.
+"""
 
 from __future__ import annotations
 
@@ -10,13 +16,13 @@ from pathlib import Path
 
 import _bootstrap  # noqa: F401
 
-from app.core.tts.inferencer import TtsInferConfig, infer
-
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--generator", required=True)
-    p.add_argument("--config", required=True)
+    p.add_argument("--generator", required=True,
+                   help="Coqui: path to best_model.pth. HF: ignored (model dir "
+                        "is inferred from --config's parent).")
+    p.add_argument("--config", required=True, help="config.json of the model.")
     src = p.add_mutually_exclusive_group(required=True)
     src.add_argument("--text")
     src.add_argument("--text-file")
@@ -29,75 +35,43 @@ def main() -> int:
     args = p.parse_args()
 
     text = args.text if args.text else Path(args.text_file).read_text(encoding="utf-8")
+    config_path = Path(args.config)
 
-    cfg = TtsInferConfig(
-        generator_pth=Path(args.generator),
-        config_json=Path(args.config),
-        text=text,
-        length_scale=args.length_scale,
-        pitch_shift_semitones=args.pitch_shift,
-        output_format=args.format,
-        model_name=args.model_name,
-        language=args.language,
-    )
     try:
-        out_path = infer(cfg)
+        from app.core.tts.hf_vits import is_hf_vits_config
+        if is_hf_vits_config(config_path):
+            # HuggingFace Transformers VITS — the whole model lives in the
+            # folder containing config.json.
+            from app.core.tts.hf_vits import HfVitsInferConfig, infer as hf_infer
+            model_dir = config_path.parent
+            out_path = hf_infer(HfVitsInferConfig(
+                model_dir=model_dir, text=text,
+                length_scale=args.length_scale,
+                output_format=args.format, model_name=args.model_name,
+            ))
+            reference_dir = model_dir
+        else:
+            from app.core.tts.inferencer import TtsInferConfig, infer as coqui_infer
+            out_path = coqui_infer(TtsInferConfig(
+                generator_pth=Path(args.generator), config_json=config_path,
+                text=text, length_scale=args.length_scale,
+                pitch_shift_semitones=args.pitch_shift,
+                output_format=args.format, model_name=args.model_name,
+                language=args.language,
+            ))
+            reference_dir = Path(args.generator).parent
+
         result = {"output": str(out_path)}
         if args.compute_metrics:
-            try:
-                from app.core.metrics.wer import wer_from_text
-                wer = wer_from_text(text, out_path, language=args.language).get("wer")
-                result["wer"] = wer
-                print(f"WER: {wer:.3f}", flush=True)
-            except Exception as me:
-                print(f"WARN: WER failed: {me}", flush=True)
-                result["wer_error"] = str(me)
+            from app.core.metrics.tts_eval import compute_tts_metrics
+            result.update(compute_tts_metrics(text, out_path, reference_dir, args.language))
 
-            # SECS for TTS only makes sense against a sample of the target
-            # speaker; without one we'd be comparing to the user's prompt
-            # text (no audio embedding) or to the model's own output (~1.0
-            # by definition). The TTS trainer saves reference_speaker.wav
-            # next to best_model.pth; use it if present.
-            try:
-                from app.core.metrics.secs import compute_secs
-                ref_path = Path(args.generator).parent / "reference_speaker.wav"
-                if ref_path.exists():
-                    result["secs"] = compute_secs(ref_path, out_path)
-                    result["secs_reference"] = str(ref_path)
-                    print(f"SECS: {result['secs']:.3f} (reference: {ref_path.name})", flush=True)
-                else:
-                    print(
-                        "SECS: пропущен (reference_speaker.wav не найден рядом с моделью; "
-                        "переобучите модель, чтобы получить эталонный сэмпл говорящего).",
-                        flush=True,
-                    )
-                    result["secs_error"] = "reference_speaker.wav not found"
-            except Exception as se:
-                print(f"WARN: SECS failed: {type(se).__name__}: {se}", flush=True)
-                result["secs_error"] = f"{type(se).__name__}: {se}"
-
-            # MCD: spectral distance vs the target-speaker reference. Same
-            # reference file as SECS; skip with a clear message if absent.
-            try:
-                from app.core.metrics.mcd import compute_mcd
-                ref_path = Path(args.generator).parent / "reference_speaker.wav"
-                if ref_path.exists():
-                    result["mcd"] = compute_mcd(ref_path, out_path)
-                    result["mcd_reference"] = str(ref_path)
-                    print(f"MCD: {result['mcd']:.2f} dB (reference: {ref_path.name})", flush=True)
-                else:
-                    print(
-                        "MCD: пропущен (reference_speaker.wav не найден рядом с моделью).",
-                        flush=True,
-                    )
-                    result["mcd_error"] = "reference_speaker.wav not found"
-            except Exception as me:
-                print(f"WARN: MCD failed: {type(me).__name__}: {me}", flush=True)
-                result["mcd_error"] = f"{type(me).__name__}: {me}"
         print(f"RESULT_JSON={json.dumps(result, ensure_ascii=False)}", flush=True)
         return 0
     except Exception as e:
+        import traceback
         print(f"ERROR: {e}", file=sys.stderr, flush=True)
+        traceback.print_exc()
         return 1
 
 
