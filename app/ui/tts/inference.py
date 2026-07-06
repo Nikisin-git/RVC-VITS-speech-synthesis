@@ -77,18 +77,29 @@ class TtsInferenceWindow(QWidget):
         model = self._dd_model.files()
         cfg = self._dd_cfg.files()
         text = self._text.toPlainText().strip()
-        if not (model and cfg and text):
-            QMessageBox.warning(self, "Вход", "Нужны best_model.pth, config.json и текст.")
+        if not (cfg and text):
+            QMessageBox.warning(self, "Вход", "Нужны config.json и текст.")
             return
+
+        # HuggingFace-Transformers VITS (mms-tts-rus и производные) хранит веса
+        # рядом с config.json (model.safetensors) — отдельный .pth не нужен.
+        # Для Coqui .pth обязателен.
+        from app.core.tts.hf_vits import is_hf_vits_config
+        is_hf = is_hf_vits_config(Path(cfg[0]))
+        if not is_hf and not model:
+            QMessageBox.warning(self, "Вход", "Для Coqui-модели нужен best_model.pth.")
+            return
+
         fmt = "wav" if self._rb_wav.isChecked() else "mp3"
-        model_name = Path(model[0]).stem
+        # HF: name from the model folder; Coqui: from the .pth stem.
+        model_name = Path(model[0]).stem if model else Path(cfg[0]).parent.name
 
         VITS_DIR.mkdir(parents=True, exist_ok=True)
         payload = VITS_DIR / "_last_text.txt"
         payload.write_text(text, encoding="utf-8")
 
         args = [
-            "--generator", model[0],
+            "--generator", model[0] if model else cfg[0],
             "--config", cfg[0],
             "--text-file", str(payload),
             "--length-scale", str(self._length.value()),

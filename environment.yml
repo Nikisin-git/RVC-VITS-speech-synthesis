@@ -34,3 +34,5 @@ dependencies:
       - tensorboard>=2.13
       - coqui-tts>=0.24
       - "transformers>=4.57,<5.0"
+      - datasets>=2.16
+      - accelerate>=0.26
