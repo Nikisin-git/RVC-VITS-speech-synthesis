@@ -15,13 +15,37 @@ Transformers VITS) через тренировочный цикл
 
 ```bash
 conda activate voicegen
-pip install "datasets>=2.16" "accelerate>=0.26"
 
-# 1. Клонировать тренировочный репозиторий
-git clone https://github.com/ylacombe/finetune-hf-vits
+# 1. Клонировать тренировочный репозиторий (shallow — быстрее и надёжнее
+#    при нестабильном доступе к GitHub)
+git clone --depth 1 https://github.com/ylacombe/finetune-hf-vits
 cd finetune-hf-vits
-pip install -r requirements.txt
+```
 
+> **ВНИМАНИЕ: НЕ запускайте `pip install -r requirements.txt` из этого
+> репозитория напрямую.** Его `torch>=2.0.0` без верхней границы снесёт
+> ваш `torch 2.4.0+cu118` до свежей CPU-версии (потеряете CUDA!) и
+> подтянет `torchcodec`, несовместимый с torch 2.4. Ставьте недостающее
+> точечно:
+>
+> ```bash
+> pip install wandb "datasets>=2.16,<4.0"
+> ```
+>
+> transformers / accelerate / matplotlib / tensorboard / Cython уже стоят
+> из основного окружения. `datasets<4.0` обязателен: с 4.0 аудио
+> декодируется через torchcodec, который ломается на torch 2.4.
+>
+> Если torch всё же слетел — верните его и уберите torchcodec:
+> ```bash
+> pip install torch==2.4.0 torchaudio==2.4.0 \
+>   --index-url https://download.pytorch.org/whl/cu118 --force-reinstall
+> pip uninstall -y torchcodec
+> python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+> # ожидается: 2.4.0+cu118 True
+> ```
+
+```bash
 # 2. Собрать monotonic_align (Cython)
 cd monotonic_align
 mkdir -p monotonic_align
