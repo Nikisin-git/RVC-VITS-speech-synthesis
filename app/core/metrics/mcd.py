@@ -61,13 +61,22 @@ def compute_mcd(
         n_fft=n_fft, hop_length=hop_length,
     )[1:]
 
+    # Cepstral mean normalization: subtract the per-coefficient time mean from
+    # each sequence. Removes the constant channel/recording bias so the
+    # distance reflects spectral *shape* differences, not level offsets.
+    mfcc_ref = mfcc_ref - mfcc_ref.mean(axis=1, keepdims=True)
+    mfcc_syn = mfcc_syn - mfcc_syn.mean(axis=1, keepdims=True)
+
     # DTW alignment: returns a warping path of (i, j) frame pairs.
     _, wp = librosa.sequence.dtw(X=mfcc_ref, Y=mfcc_syn, metric="euclidean")
     if len(wp) == 0:
         raise ValueError("DTW не смог выровнять последовательности MFCC.")
 
     diffs = mfcc_ref[:, wp[:, 0]] - mfcc_syn[:, wp[:, 1]]
-    # Per-frame distance, then mean, then the MCD scaling constant.
+    # librosa MFCCs already come from a dB-scaled (10*log10) mel spectrum,
+    # i.e. they are (10/ln10)*natural-log-cepstrum. The classical MCD constant
+    # (10/ln10) is therefore ALREADY baked into the coefficients, so we must
+    # NOT multiply by it again — MCD is simply sqrt(2*sum(diff^2)) averaged
+    # over frames. (Multiplying again inflated the value ~4.34x.)
     per_frame = np.sqrt(2.0 * np.sum(diffs ** 2, axis=0))
-    mean_distance = float(np.mean(per_frame))
-    return (10.0 / np.log(10.0)) * mean_distance
+    return float(np.mean(per_frame))
