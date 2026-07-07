@@ -59,6 +59,23 @@ def _apply_transformers_compat() -> None:
         print(f"WARN: transformers compat shim failed: {e}", flush=True)
 
 
+def _apply_matplotlib_compat() -> None:
+    """matplotlib 3.8+ removed FigureCanvasAgg.tostring_rgb; finetune-hf-vits's
+    utils/plot.py still calls it when rendering alignment/mel images during
+    validation, crashing the run at the first eval step. Re-add tostring_rgb
+    as an RGB view over buffer_rgba() (drops the alpha channel) so the old
+    `np.frombuffer(...).reshape(h, w, 3)` downstream keeps working."""
+    try:
+        import numpy as np
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+        if not hasattr(FigureCanvasAgg, "tostring_rgb"):
+            def _tostring_rgb(self):
+                return np.asarray(self.buffer_rgba())[:, :, :3].tobytes()
+            FigureCanvasAgg.tostring_rgb = _tostring_rgb
+    except Exception as e:
+        print(f"WARN: matplotlib compat shim failed: {e}", flush=True)
+
+
 def _apply_windows_tempdir_fix() -> None:
     """Make tempfile.TemporaryDirectory tolerate cleanup failures on Windows.
 
@@ -211,6 +228,7 @@ def main() -> int:
     # don't ImportError.
     _apply_transformers_compat()
     _apply_windows_tempdir_fix()
+    _apply_matplotlib_compat()
 
     # 4. Run the upstream trainer in-process from the repo directory.
     os.environ.setdefault("MPLBACKEND", "Agg")
