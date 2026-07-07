@@ -38,5 +38,9 @@ coqui-tts>=0.24
 transformers>=4.57,<5.0
 # HuggingFace VITS-путь (инференс mms-tts-rus и дообучение через
 # finetune-hf-vits): датасеты в формате audiofolder + accelerate.
-datasets>=2.16
+# datasets<4.0: с 4.0 датасеты декодируют аудио через torchcodec, чья
+# нативная библиотека жёстко привязана к версии torch и ломается на
+# torch 2.4 (libtorchcodec_core*.dll не грузятся). Версии 3.x используют
+# soundfile — он уже установлен и совместим.
+datasets>=2.16,<4.0
 accelerate>=0.26
