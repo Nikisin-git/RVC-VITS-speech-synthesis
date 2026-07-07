@@ -181,6 +181,10 @@ def main() -> int:
         "weight_mel": 35,
         "fp16": use_fp16,
         "seed": 456,
+        # Log only to TensorBoard (our training-curves reader parses those
+        # event files). Excluding wandb avoids the interactive
+        # "Enter your choice" prompt that stalls an unattended run.
+        "report_to": "tensorboard",
     }
     config_path = output_dir / "train_config.json"
     config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -210,6 +214,10 @@ def main() -> int:
 
     # 4. Run the upstream trainer in-process from the repo directory.
     os.environ.setdefault("MPLBACKEND", "Agg")
+    # Belt-and-braces: disable wandb so it never shows the interactive
+    # account prompt, even if some code path re-enables reporting.
+    os.environ["WANDB_DISABLED"] = "true"
+    os.environ["WANDB_MODE"] = "disabled"
     prev_cwd = os.getcwd()
     os.chdir(str(repo))
     sys.path.insert(0, str(repo))
