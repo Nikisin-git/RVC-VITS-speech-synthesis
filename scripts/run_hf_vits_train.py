@@ -120,7 +120,9 @@ def main() -> int:
     p.add_argument("--model-name", required=True)
     p.add_argument("--base-model", default="facebook/mms-tts-rus",
                    help="HF id or local path of the base VITS *with discriminator*.")
-    p.add_argument("--output-dir", required=True)
+    p.add_argument("--output-dir", default=None,
+                   help="Where to write the model. Default: "
+                        "user_data/VITS/hf_vits_finetune/<model-name>.")
     p.add_argument("--epochs", type=int, default=100)
     p.add_argument("--batch-size", type=int, default=8)
     p.add_argument("--learning-rate", type=float, default=2e-5)
@@ -128,7 +130,13 @@ def main() -> int:
     args = p.parse_args()
 
     repo = _find_repo(args.repo)
-    output_dir = Path(args.output_dir)
+    # Keep user-generated content under user_data/VITS by default so console
+    # and UI runs land in the same place (VITS_DIR honours VOICEGEN_DATA_DIR).
+    if args.output_dir:
+        output_dir = Path(args.output_dir)
+    else:
+        from app.config import VITS_DIR
+        output_dir = VITS_DIR / "hf_vits_finetune" / args.model_name
     output_dir.mkdir(parents=True, exist_ok=True)
     dataset_dir = output_dir / "_dataset"
 

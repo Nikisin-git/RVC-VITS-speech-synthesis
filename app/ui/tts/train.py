@@ -266,7 +266,7 @@ class TtsTrainWindow(QWidget):
             return
 
         name = self._name.text()
-        out_dir = VITS_DIR / "HF Finetune" / name
+        out_dir = VITS_DIR / "hf_vits_finetune" / name
         args = [
             "--manifest", manifest,
             "--audio-dir", str(audio_dir),

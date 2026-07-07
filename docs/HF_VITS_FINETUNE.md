@@ -93,8 +93,13 @@ python scripts\run_hf_vits_train.py ^
    локальный `data_dir` (апстрим локальные пути напрямую не поддерживает).
 5. Запускает `run_vits_finetuning.py`.
 
-На GTX 1660 — ориентировочно 1–3 часа на 100 эпох. Выход: папка
-`F:\hf_vits_finetune\Andrey\run` с `config.json` + `model.safetensors`.
+На GTX 1660 — ориентировочно 1–3 часа на 100 эпох.
+
+Выход по умолчанию — под `user_data`:
+`user_data\VITS\hf_vits_finetune\<имя-модели>\run\` с `config.json` +
+`model.safetensors` + токенайзером. `--output-dir` можно указать явно,
+чтобы переопределить. `VITS_DIR` уважает переменную `VOICEGEN_DATA_DIR`,
+так что при `VOICEGEN_DATA_DIR=F:\voicegen_data` выход будет на F:.
 
 ## Инференс
 
