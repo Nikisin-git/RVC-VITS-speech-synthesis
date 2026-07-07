@@ -21,6 +21,7 @@ dependencies:
       - pydub>=0.25
       - ffmpeg-python>=0.2
       - pedalboard==0.9.12
+      - lameenc>=1.7
       - openai-whisper
       - resemblyzer
       - transliterate

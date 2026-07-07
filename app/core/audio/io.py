@@ -46,11 +46,40 @@ def _mp3_is_valid(path: Path) -> bool:
         return False
 
 
+def _encode_mp3_lameenc(tmp_wav: Path, out_path: Path, bitrate: int = 192) -> Path | None:
+    """Encode MP3 with the `lameenc` package (bundles LAME, no ffmpeg codec
+    needed — works regardless of the system ffmpeg build). Returns the output
+    path on success, or None if lameenc isn't installed / fails so the caller
+    can fall back to ffmpeg."""
+    try:
+        import lameenc
+        import numpy as np
+        import soundfile as sf
+        data, real_sr = sf.read(str(tmp_wav), dtype="int16")
+        channels = 1 if data.ndim == 1 else data.shape[1]
+        enc = lameenc.Encoder()
+        enc.set_bit_rate(bitrate)
+        enc.set_in_sample_rate(int(real_sr))
+        enc.set_channels(channels)
+        enc.set_quality(2)  # 2 = high quality, reasonable speed
+        mp3 = enc.encode(np.ascontiguousarray(data).tobytes())
+        mp3 += enc.flush()
+        Path(out_path).write_bytes(mp3)
+        return out_path
+    except Exception as e:
+        print(f"INFO: lameenc unavailable ({e}); trying ffmpeg for MP3.", flush=True)
+        return None
+
+
 def _encode_mp3(tmp_wav: Path, out_path: Path) -> Path:
-    """Encode to MP3 with libmp3lame (the only reliable encoder across ffmpeg
-    builds). The native 'mp3' encoder in LGPL conda builds writes corrupt
-    files, so we verify the result and, if anything is wrong, fall back to a
-    valid WAV instead of handing back an unplayable MP3."""
+    """Encode to MP3. Prefer the self-contained `lameenc` (works on any
+    machine); fall back to ffmpeg's libmp3lame, then verify the result and
+    fall back to a valid WAV if the only available encoder produced a corrupt
+    file (LGPL ffmpeg builds' native 'mp3' encoder does this)."""
+    via_lame = _encode_mp3_lameenc(tmp_wav, out_path)
+    if via_lame is not None and _mp3_is_valid(via_lame):
+        return via_lame
+
     for codec in ("libmp3lame", "mp3"):
         try:
             subprocess.run(

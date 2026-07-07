@@ -16,6 +16,9 @@ soundfile>=0.12
 pydub>=0.25
 ffmpeg-python>=0.2
 pedalboard==0.9.12
+# Self-contained MP3 encoder (bundles LAME). Lets MP3 export work even when
+# the system ffmpeg build lacks libmp3lame (common in LGPL conda builds).
+lameenc>=1.7
 openai-whisper
 resemblyzer
 transliterate
