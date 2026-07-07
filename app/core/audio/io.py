@@ -29,10 +29,28 @@ def _replace_ext(path: Path, new_ext: str) -> Path:
     return path.with_name(name + new_ext)
 
 
+def _mp3_is_valid(path: Path) -> bool:
+    """Verify ffmpeg can actually read the MP3 back. Some LGPL ffmpeg builds
+    have no libmp3lame and their native 'mp3' encoder writes malformed files
+    (unseekable, bad frame size) that then fail on playback and metric loads.
+    A quick decode-to-null probe catches that."""
+    if not path.exists() or path.stat().st_size < 512:
+        return False
+    try:
+        subprocess.run(
+            ["ffmpeg", "-v", "error", "-i", str(path), "-f", "null", "-"],
+            check=True, capture_output=True,
+        )
+        return True
+    except Exception:
+        return False
+
+
 def _encode_mp3(tmp_wav: Path, out_path: Path) -> Path:
-    """Try MP3 encoders in order: libmp3lame, then ffmpeg's bundled 'mp3'.
-    If both fail (no libmp3lame, no licensed mp3 encoder in this build),
-    fall back to keeping the .wav next to the requested .mp3 path."""
+    """Encode to MP3 with libmp3lame (the only reliable encoder across ffmpeg
+    builds). The native 'mp3' encoder in LGPL conda builds writes corrupt
+    files, so we verify the result and, if anything is wrong, fall back to a
+    valid WAV instead of handing back an unplayable MP3."""
     for codec in ("libmp3lame", "mp3"):
         try:
             subprocess.run(
@@ -40,13 +58,21 @@ def _encode_mp3(tmp_wav: Path, out_path: Path) -> Path:
                  "-i", str(tmp_wav), "-codec:a", codec, "-b:a", "192k", str(out_path)],
                 check=True,
             )
-            return out_path
         except subprocess.CalledProcessError:
             continue
-    # Both encoders missing — keep the WAV so the user still gets the result.
+        if _mp3_is_valid(out_path):
+            return out_path
+        # Encoder ran but produced a broken file — discard and try the next.
+        out_path.unlink(missing_ok=True)
+    # No working MP3 encoder — keep the WAV so the user gets a usable file.
     fallback = _replace_ext(out_path, ".wav")
     tmp_wav.replace(fallback)
-    print(f"WARN: ffmpeg has no MP3 encoder; kept {fallback}", flush=True)
+    print(
+        f"WARN: в этой сборке ffmpeg нет рабочего MP3-кодировщика (libmp3lame). "
+        f"Сохранил WAV: {fallback}. Для MP3 установите ffmpeg с libmp3lame или "
+        f"выбирайте формат WAV.",
+        flush=True,
+    )
     return fallback
 
 
