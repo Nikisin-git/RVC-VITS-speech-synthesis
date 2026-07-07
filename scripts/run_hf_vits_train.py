@@ -126,6 +126,8 @@ def main() -> int:
     p.add_argument("--epochs", type=int, default=100)
     p.add_argument("--batch-size", type=int, default=8)
     p.add_argument("--learning-rate", type=float, default=2e-5)
+    p.add_argument("--save-every", type=int, default=10,
+                   help="Save a checkpoint every N epochs.")
     p.add_argument("--repo", help="path to a cloned finetune-hf-vits repo")
     args = p.parse_args()
 
@@ -149,6 +151,21 @@ def main() -> int:
     if ret.returncode != 0:
         print("ERROR: подготовка датасета не удалась.", file=sys.stderr)
         return 1
+
+    # Convert "save every N epochs" into HF Trainer's step-based save_steps.
+    # steps_per_epoch = ceil(rows / batch_size); rows read from the prepared
+    # metadata.csv (minus its header). A few rows drop later at the duration
+    # filter, so this slightly overestimates steps — close enough to land a
+    # checkpoint roughly every N epochs.
+    try:
+        meta = dataset_dir / "metadata.csv"
+        rows = max(1, sum(1 for _ in meta.open(encoding="utf-8")) - 1)
+    except Exception:
+        rows = 366
+    steps_per_epoch = max(1, -(-rows // max(1, args.batch_size)))  # ceil div
+    save_steps = max(1, args.save_every * steps_per_epoch)
+    print(f"[hf-vits] save_every={args.save_every} эпох → save_steps={save_steps} "
+          f"(≈{steps_per_epoch} шагов/эпоху)", flush=True)
 
     # The upstream trainer runs after we chdir into the finetune-hf-vits repo,
     # so a relative --base-model would resolve against the wrong directory and
@@ -198,6 +215,10 @@ def main() -> int:
         "per_device_eval_batch_size": max(2, args.batch_size // 2),
         "max_eval_samples": 25,
         "do_step_schedule_per_epoch": True,
+        # Checkpoint every N epochs (converted to steps above). Checkpoints go
+        # to <output_dir>/run/checkpoint-<step>/, i.e. under user_data.
+        "save_strategy": "steps",
+        "save_steps": save_steps,
         "weight_disc": 3,
         "weight_fmaps": 1,
         "weight_gen": 1,

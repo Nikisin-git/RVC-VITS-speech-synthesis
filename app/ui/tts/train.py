@@ -182,7 +182,7 @@ class TtsTrainWindow(QWidget):
         self._name_error.setObjectName("error_label")
         sl.addWidget(self._name_error)
 
-        self._save_every = SliderWithInput("Частота сохранения, эпох (Coqui)", 5, 50, 1, 10, decimals=0)
+        self._save_every = SliderWithInput("Частота сохранения чекпойнта, эпох", 5, 50, 1, 10, decimals=0)
         self._epochs = SliderWithInput("Количество эпох", 10, 10000, 10, 100, decimals=0)
         recommended = recommended_batch_size(env.gpu_vram_gb if env else None)
         self._batch = SliderWithInput("batch_size", 4, 32, 1, min(8, recommended), decimals=0)
@@ -209,7 +209,7 @@ class TtsTrainWindow(QWidget):
         hf = self._rb_hf.isChecked()
         self._hf_box.setVisible(hf)
         self._coqui_box.setVisible(not hf)
-        self._save_every.setVisible(not hf)  # Coqui-only knob
+        # save-every applies to both engines now (checkpoint frequency in epochs)
 
     def _on_mode_changed(self) -> None:
         finetune = self._rb_finetune.isChecked()
@@ -275,6 +275,7 @@ class TtsTrainWindow(QWidget):
             "--output-dir", str(out_dir),
             "--epochs", str(int(self._epochs.value())),
             "--batch-size", str(int(self._batch.value())),
+            "--save-every", str(int(self._save_every.value())),
             "--repo", repo,
         ]
         # HF Trainer logs its own tensorboard scalars (not our Coqui/RVC names),
