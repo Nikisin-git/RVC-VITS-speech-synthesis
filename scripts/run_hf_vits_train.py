@@ -59,6 +59,28 @@ def _apply_transformers_compat() -> None:
         print(f"WARN: transformers compat shim failed: {e}", flush=True)
 
 
+def _apply_windows_tempdir_fix() -> None:
+    """Make tempfile.TemporaryDirectory tolerate cleanup failures on Windows.
+
+    The upstream trainer splits the combined checkpoint into generator +
+    discriminator by saving the discriminator to a TemporaryDirectory and
+    loading it back. safetensors loads weights via memory-mapping and keeps
+    the file handle open, so on Windows the dir cleanup on `with` exit fails
+    with 'Access denied' (the mapped .safetensors can't be unlinked). The
+    discriminator is already loaded by then, so we just want the cleanup to
+    not raise. ignore_cleanup_errors=True (Python 3.10+) does exactly that.
+    """
+    import tempfile
+    _Orig = tempfile.TemporaryDirectory
+
+    class _TolerantTempDir(_Orig):
+        def __init__(self, *a, **kw):
+            kw.setdefault("ignore_cleanup_errors", True)
+            super().__init__(*a, **kw)
+
+    tempfile.TemporaryDirectory = _TolerantTempDir
+
+
 def _find_repo(explicit: str | None) -> Path:
     cand = explicit or os.environ.get("VOICEGEN_FINETUNE_HF_VITS")
     if not cand:
@@ -184,6 +206,7 @@ def main() -> int:
     # newer transformers removed so the upstream `from ... import X` lines
     # don't ImportError.
     _apply_transformers_compat()
+    _apply_windows_tempdir_fix()
 
     # 4. Run the upstream trainer in-process from the repo directory.
     os.environ.setdefault("MPLBACKEND", "Agg")
