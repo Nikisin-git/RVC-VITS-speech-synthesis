@@ -103,6 +103,15 @@ def main() -> int:
         print("ERROR: подготовка датасета не удалась.", file=sys.stderr)
         return 1
 
+    # The upstream trainer runs after we chdir into the finetune-hf-vits repo,
+    # so a relative --base-model would resolve against the wrong directory and
+    # transformers would fall back to treating it as a HF repo id (which then
+    # fails validation on the backslashes). Resolve a local dir to an absolute
+    # path now; leave a bare HF id (e.g. facebook/mms-tts-rus) untouched.
+    base_model = args.base_model
+    if Path(base_model).is_dir():
+        base_model = str(Path(base_model).resolve())
+
     # 2. Write the training config. fp16 off on cards without Tensor Cores
     #    (fp16 GAN training diverges on GTX 16xx — same root cause as the
     #    Coqui buzzing). Loss weights follow the upstream English example.
@@ -121,7 +130,7 @@ def main() -> int:
         "max_duration_in_seconds": 20,
         "min_duration_in_seconds": 1.0,
         "max_tokens_length": 500,
-        "model_name_or_path": args.base_model,
+        "model_name_or_path": base_model,
         "preprocessing_num_workers": 2,
         "do_train": True,
         "num_train_epochs": args.epochs,
