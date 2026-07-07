@@ -29,10 +29,15 @@ logs/
 !third_party/**/*.pth
 
 # HuggingFace VITS fine-tuning (docs/HF_VITS_FINETUNE.md)
-finetune-hf-vits/        # cloned upstream training repo
-hf_vits_finetune/        # fine-tuning output (also under user_data by default)
-wandb/                   # wandb offline runs created by the trainer
-*.patch                  # transient patch files
+# NOTE: .gitignore has no inline comments — keep patterns on their own lines.
+# cloned upstream training repo
+finetune-hf-vits/
+# fine-tuning output (also under user_data by default)
+hf_vits_finetune/
+# wandb offline runs created by the trainer
+wandb/
+# transient patch files
+*.patch
 
 *.wav
 *.mp3
