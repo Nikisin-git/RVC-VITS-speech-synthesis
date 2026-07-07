@@ -131,7 +131,13 @@ def main() -> int:
         "min_duration_in_seconds": 1.0,
         "max_tokens_length": 500,
         "model_name_or_path": base_model,
-        "preprocessing_num_workers": 2,
+        # Single-process preprocessing: datasets.filter/map with num_proc>1
+        # spawns child processes that re-import run_vits_finetuning.py from
+        # scratch on Windows, re-triggering the transformers ImportError our
+        # in-process shim only fixed in the parent. 366 examples preprocess
+        # in seconds single-process, and this sidesteps all Windows-spawn
+        # fragility.
+        "preprocessing_num_workers": 1,
         "do_train": True,
         "num_train_epochs": args.epochs,
         "gradient_accumulation_steps": 1,
