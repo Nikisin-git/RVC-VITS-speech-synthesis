@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -38,6 +39,18 @@ def validate_manifest(manifest_path: Path, audio_dir: Path) -> ManifestReport:
         report.errors.append(f"Не удалось прочитать манифест: {e}")
         return report
 
+    # Scan the audio directory ONCE into a set instead of doing an individual
+    # filesystem stat per manifest row. On a 22k-clip audiobook dataset the
+    # per-row .exists() calls froze the UI for minutes; a single scandir plus
+    # set lookups is effectively instant.
+    try:
+        on_disk = {e.name for e in os.scandir(audio_dir)
+                   if e.name.lower().endswith(".wav")}
+    except OSError as e:
+        report.ok = False
+        report.errors.append(f"Не удалось прочитать папку аудио: {e}")
+        return report
+
     referenced: set[str] = set()
     for lineno, line in enumerate(text.splitlines(), start=1):
         line = line.strip()
@@ -51,19 +64,14 @@ def validate_manifest(manifest_path: Path, audio_dir: Path) -> ManifestReport:
             report.errors.append(f"Строка {lineno}: пустое имя файла или текст")
             continue
         filename, transcript = parts[0].strip(), parts[1].strip()
-        referenced.add(filename)
         # Coqui's ljspeech formatter does `cols[0] + ".wav"`, so the manifest
-        # is allowed to drop the extension. Accept both forms.
-        candidate = audio_dir / filename
-        if not candidate.exists() and not filename.lower().endswith(".wav"):
-            candidate = audio_dir / f"{filename}.wav"
-        if not candidate.exists():
+        # is allowed to drop the extension. Accept both forms via set lookup.
+        name = filename if filename in on_disk else f"{filename}.wav"
+        if name not in on_disk:
             report.errors.append(f"Строка {lineno}: файл не найден — {filename}")
             continue
-        referenced.add(candidate.name)
+        referenced.add(name)
         report.rows.append((filename, transcript))
-
-    on_disk = {p.name for p in audio_dir.glob("*.wav")}
     orphans = on_disk - referenced
     if orphans:
         sample = ", ".join(sorted(orphans)[:5])

@@ -29,8 +29,10 @@ def main() -> int:
     p.add_argument("--manifest", required=True, help="stem|text|text CSV")
     p.add_argument("--audio-dir", required=True, help="folder with the .wav files")
     p.add_argument("--output", required=True, help="dataset dir to create")
-    p.add_argument("--link", action="store_true",
-                   help="hardlink wavs instead of copying (saves disk).")
+    p.add_argument("--copy", action="store_true",
+                   help="copy wavs instead of hardlinking (default: hardlink, "
+                        "instant and no disk duplication; falls back to copy "
+                        "automatically when src and dst are on different drives).")
     args = p.parse_args()
 
     manifest = Path(args.manifest)
@@ -61,14 +63,16 @@ def main() -> int:
                 continue
             dst = out / f"{stem}.wav"
             if not dst.exists():
-                if args.link:
+                if args.copy:
+                    shutil.copy2(src, dst)
+                else:
+                    # Hardlink by default — instant and no disk duplication.
+                    # Falls back to copy across drives (os.link fails there).
                     try:
                         import os
                         os.link(src, dst)
                     except OSError:
                         shutil.copy2(src, dst)
-                else:
-                    shutil.copy2(src, dst)
             writer.writerow([f"{stem}.wav", text])
             written += 1
 
