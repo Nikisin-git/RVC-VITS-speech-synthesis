@@ -159,6 +159,12 @@ class TtsTrainWindow(QWidget):
         cols = QHBoxLayout()
         audio_box = QGroupBox("Аудио")
         al = QVBoxLayout(audio_box)
+        # Folder picker is the primary way (works for thousands of clips);
+        # the drag-drop below stays as an option for small sets.
+        al.addWidget(QLabel("Папка с .wav (рекомендуется для больших датасетов):"))
+        self._audio_dir = _FolderPicker("…\\wavs")
+        al.addWidget(self._audio_dir)
+        al.addWidget(QLabel("или перетащите отдельные файлы:"))
         self._dd_audio = DragDropArea("Перетащите .wav файлы", allowed_exts=(".wav",))
         al.addWidget(self._dd_audio)
         cols.addWidget(audio_box, stretch=1)
@@ -225,8 +231,23 @@ class TtsTrainWindow(QWidget):
         audio_files = self._dd_audio.files()
         manifest = self._dd_manifest.files()
         ok, err = validate_model_name(self._name.text())
-        if not (audio_files and manifest):
-            QMessageBox.warning(self, "Вход", "Добавьте аудио и манифест.")
+
+        # Audio directory: prefer the explicitly picked folder (works for
+        # thousands of clips); otherwise fall back to the dropped files' parent.
+        picked_dir = self._audio_dir.path()
+        if picked_dir:
+            audio_dir = Path(picked_dir)
+            if not audio_dir.is_dir():
+                QMessageBox.warning(self, "Аудио", "Указанная папка с аудио не найдена.")
+                return
+        elif audio_files:
+            audio_dir = Path(audio_files[0]).parent
+        else:
+            QMessageBox.warning(self, "Вход", "Выберите папку с аудио или перетащите .wav файлы.")
+            return
+
+        if not manifest:
+            QMessageBox.warning(self, "Вход", "Добавьте манифест (.csv).")
             return
         if not ok:
             QMessageBox.warning(self, "Имя модели", err or "")
@@ -234,8 +255,6 @@ class TtsTrainWindow(QWidget):
         if self._env is not None and not self._env.cuda_available:
             QMessageBox.warning(self, "GPU", "CUDA не обнаружена.")
             return
-
-        audio_dir = Path(audio_files[0]).parent
         report = validate_manifest(Path(manifest[0]), audio_dir)
         if not report.ok:
             msg = "Ошибки в манифесте:\n\n" + "\n".join(report.errors[:20])
