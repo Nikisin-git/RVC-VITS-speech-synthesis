@@ -98,15 +98,28 @@ def main() -> int:
     print("Строю модель из config.json …", flush=True)
     config = VitsConfig.from_pretrained(str(run))
     model = VitsModelForPreTraining(config)
+    # VitsModelForPreTraining does NOT apply weight-norm in __init__ — the
+    # trainer calls apply_weight_norm() before training, so the checkpoint's
+    # decoder/flow/posterior weights are stored in weight-norm form
+    # (weight_g/weight_v). Apply it here too so the checkpoint keys match and
+    # remove_weight_norm() below has something to collapse.
+    model.apply_weight_norm()
 
     print("Загружаю веса чекпойнта …", flush=True)
     state = load_file(str(weights))
     missing, unexpected = model.load_state_dict(state, strict=False)
-    # Report only counts — a handful of discriminator keys are expected to be
-    # missing here (its weights are in model_1.safetensors, not needed for TTS).
+    # A few discriminator keys may be missing (its weights are in
+    # model_1.safetensors, not needed for TTS). If the counts are still large
+    # after apply_weight_norm, the load didn't align — warn loudly.
     print(f"  загружено; отсутствуют {len(missing)}, лишних {len(unexpected)}", flush=True)
+    if len(missing) > 20 and len(unexpected) > 20:
+        print("  WARN: много несовпавших ключей — результат может быть некорректным.", flush=True)
 
-    print("Свёртываю weight-norm декодера (иначе будет жужжание) …", flush=True)
+    # Replicate the trainer's FINAL save EXACTLY: it collapses weight-norm only
+    # on the decoder (and discriminators), leaving flow/posterior in weight-norm
+    # form. Matching this byte-for-byte guarantees the same format as the
+    # working run/ model — removing flow/posterior too would break loading.
+    print("Свёртываю weight-norm декодера (как при финальном сохранении) …", flush=True)
     model.decoder.remove_weight_norm()
     try:
         for d in model.discriminator.discriminators:
