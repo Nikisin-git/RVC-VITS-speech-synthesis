@@ -38,19 +38,33 @@ _TOKENIZER_FILES = (
 )
 
 
-def _import_pretraining_class():
-    """VitsModelForPreTraining lives in transformers (>=4.4x); fall back to the
-    finetune-hf-vits repo if a given transformers build lacks it."""
+def _import_repo_classes(repo: str | None):
+    """VitsModelForPreTraining / VitsConfig live in the finetune-hf-vits repo's
+    `utils` package (not in stock transformers). Put the repo on sys.path and
+    import them from there, exactly as run_vits_finetuning.py does."""
+    cand = repo or os.environ.get("VOICEGEN_FINETUNE_HF_VITS")
+    if not cand or not Path(cand).is_dir():
+        raise SystemExit(
+            "ERROR: не найден репозиторий finetune-hf-vits. Передайте --repo "
+            "<path> или задайте переменную VOICEGEN_FINETUNE_HF_VITS. Класс "
+            "VitsModelForPreTraining определён в нём (пакет utils), а не в "
+            "transformers."
+        )
+    repo_path = str(Path(cand).resolve())
+    if repo_path not in sys.path:
+        sys.path.insert(0, repo_path)
+    # `utils` may pull matplotlib plotting helpers that call the removed
+    # tostring_rgb; restore it so the import doesn't explode.
     try:
-        from transformers import VitsModelForPreTraining  # type: ignore
-        return VitsModelForPreTraining
+        import numpy as _np
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+        if not hasattr(FigureCanvasAgg, "tostring_rgb"):
+            FigureCanvasAgg.tostring_rgb = lambda self: _np.asarray(
+                self.buffer_rgba())[:, :, :3].tobytes()
     except Exception:
-        repo = os.environ.get("VOICEGEN_FINETUNE_HF_VITS")
-        if repo and Path(repo).is_dir():
-            sys.path.insert(0, str(repo))
-        # Some repo layouts expose it under utils/
-        from utils.modeling_vits_training import VitsModelForPreTraining  # type: ignore
-        return VitsModelForPreTraining
+        pass
+    from utils import VitsModelForPreTraining, VitsConfig  # type: ignore
+    return VitsModelForPreTraining, VitsConfig
 
 
 def main() -> int:
@@ -59,6 +73,8 @@ def main() -> int:
     p.add_argument("--run", default=None, help="run/ dir (default: checkpoint's parent)")
     p.add_argument("--output", default=None,
                    help="output dir (default: <checkpoint>_inference)")
+    p.add_argument("--repo", default=None,
+                   help="finetune-hf-vits repo (default: VOICEGEN_FINETUNE_HF_VITS)")
     args = p.parse_args()
 
     ckpt = Path(args.checkpoint)
@@ -75,9 +91,9 @@ def main() -> int:
 
     import torch  # noqa: F401
     from safetensors.torch import load_file
-    from transformers import VitsConfig
 
-    VitsModelForPreTraining = _import_pretraining_class()
+    # VitsModelForPreTraining and the matching VitsConfig come from the repo.
+    VitsModelForPreTraining, VitsConfig = _import_repo_classes(args.repo)
 
     print("Строю модель из config.json …", flush=True)
     config = VitsConfig.from_pretrained(str(run))

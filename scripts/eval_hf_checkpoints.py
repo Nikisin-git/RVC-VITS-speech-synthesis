@@ -52,6 +52,8 @@ def main() -> int:
     p.add_argument("--keep", action="store_true",
                    help="keep the converted <checkpoint>_inference folders (default: delete)")
     p.add_argument("--output", default=None, help="report dir (default: <run>/_eval)")
+    p.add_argument("--repo", default=None,
+                   help="finetune-hf-vits repo (default: VOICEGEN_FINETUNE_HF_VITS)")
     args = p.parse_args()
 
     run = Path(args.run)
@@ -87,8 +89,11 @@ def main() -> int:
         print(f"\n=== {ck.name} ({tag}) ===", flush=True)
 
         exp = ck.parent / f"{ck.name}_inference"
-        r = subprocess.run([sys.executable, str(export), "--checkpoint", str(ck),
-                            "--run", str(run), "--output", str(exp)])
+        export_cmd = [sys.executable, str(export), "--checkpoint", str(ck),
+                      "--run", str(run), "--output", str(exp)]
+        if args.repo:
+            export_cmd += ["--repo", args.repo]
+        r = subprocess.run(export_cmd)
         if r.returncode != 0:
             print(f"  пропуск: конвертация не удалась", flush=True)
             continue
