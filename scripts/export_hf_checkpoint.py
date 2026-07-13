@@ -115,17 +115,25 @@ def main() -> int:
     if len(missing) > 20 and len(unexpected) > 20:
         print("  WARN: много несовпавших ключей — результат может быть некорректным.", flush=True)
 
-    # Replicate the trainer's FINAL save EXACTLY: it collapses weight-norm only
-    # on the decoder (and discriminators), leaving flow/posterior in weight-norm
-    # form. Matching this byte-for-byte guarantees the same format as the
-    # working run/ model — removing flow/posterior too would break loading.
-    print("Свёртываю weight-norm декодера (как при финальном сохранении) …", flush=True)
-    model.decoder.remove_weight_norm()
+    # Replicate the trainer's FINAL save EXACTLY (run_vits_finetuning.py):
+    #   for disc in model.discriminator.discriminators: disc.remove_weight_norm()
+    #   model.decoder.remove_weight_norm()
+    #   for flow in model.flow.flows:
+    #       remove_weight_norm(flow.conv_pre); remove_weight_norm(flow.conv_post)
+    # The FLOW layers are the critical bit — they're on the inference path
+    # (text -> prior -> flow -> decoder). Leaving them in weight-norm form was
+    # what produced the trembling. posterior_encoder is intentionally left as
+    # is (not used at inference).
+    print("Свёртываю weight-norm декодера и flow (как при финальном сохранении) …", flush=True)
     try:
         for d in model.discriminator.discriminators:
             d.remove_weight_norm()
     except Exception:
         pass  # discriminator not needed for inference
+    model.decoder.remove_weight_norm()
+    for flow in model.flow.flows:
+        torch.nn.utils.remove_weight_norm(flow.conv_pre)
+        torch.nn.utils.remove_weight_norm(flow.conv_post)
 
     out.mkdir(parents=True, exist_ok=True)
     print(f"Сохраняю инференс-модель в {out} …", flush=True)
