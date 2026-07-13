@@ -56,7 +56,15 @@ def _synthesize(cfg: HfVitsInferConfig) -> tuple[np.ndarray, int]:
 
     src = str(cfg.model_dir)
     model = VitsModel.from_pretrained(src)
-    tokenizer = AutoTokenizer.from_pretrained(src)
+    # HF Trainer checkpoints (run/checkpoint-<step>/) carry config.json +
+    # model.safetensors but NOT the tokenizer — those live in the parent
+    # run/ folder. Fall back to the parent so intermediate checkpoints work
+    # for inference without copying files around.
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(src)
+    except Exception:
+        parent = str(Path(src).parent)
+        tokenizer = AutoTokenizer.from_pretrained(parent)
 
     # length_scale in our UI is "slower when >1"; HF exposes speaking_rate
     # where LOWER is slower. Invert so the control feels consistent.

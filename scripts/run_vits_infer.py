@@ -49,7 +49,12 @@ def main() -> int:
                 length_scale=args.length_scale,
                 output_format=args.format, model_name=args.model_name,
             ))
+            # reference_speaker.wav lives in the run/ folder; when inferring
+            # from a checkpoint subfolder, look one level up too.
             reference_dir = model_dir
+            if not (model_dir / "reference_speaker.wav").exists() \
+                    and (model_dir.parent / "reference_speaker.wav").exists():
+                reference_dir = model_dir.parent
         else:
             from app.core.tts.inferencer import TtsInferConfig, infer as coqui_infer
             out_path = coqui_infer(TtsInferConfig(
