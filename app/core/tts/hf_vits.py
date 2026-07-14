@@ -66,10 +66,10 @@ def _synthesize(cfg: HfVitsInferConfig) -> tuple[np.ndarray, int]:
         parent = str(Path(src).parent)
         tokenizer = AutoTokenizer.from_pretrained(parent)
 
-    # length_scale in our UI is "slower when >1"; HF exposes speaking_rate
-    # where LOWER is slower. Invert so the control feels consistent.
+    # The UI "Темп речи" is now a direct speed factor: lower = slower. HF's
+    # speaking_rate has the same direction (lower = slower), so pass it through.
     if abs(cfg.length_scale - 1.0) > 1e-3:
-        model.speaking_rate = 1.0 / max(cfg.length_scale, 1e-3)
+        model.speaking_rate = max(cfg.length_scale, 1e-3)
     if cfg.noise_scale is not None:
         model.noise_scale = float(cfg.noise_scale)
 

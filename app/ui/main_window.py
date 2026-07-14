@@ -19,6 +19,7 @@ from app.ui.rvc.inference import RvcInferenceWindow
 from app.ui.rvc.train import RvcTrainWindow
 from app.ui.tts.inference import TtsInferenceWindow
 from app.ui.tts.train import TtsTrainWindow
+from app.ui.widgets.chamfer_button import ChamferButton
 from app.ui.widgets.trapezoid_frame import TrapezoidFrame
 from app.utils.env_check import run_checks
 
@@ -32,10 +33,8 @@ def load_theme(theme: str) -> str:
     return qss.read_text(encoding="utf-8")
 
 
-class _BlockButton(QPushButton):
-    def __init__(self, text: str) -> None:
-        super().__init__(text)
-        self.setMinimumHeight(44)
+class _BlockButton(ChamferButton):
+    """Narrow, square-ish button with 45°-cut corners for the main menu."""
 
 
 class MainWindow(QMainWindow):
@@ -68,42 +67,42 @@ class MainWindow(QMainWindow):
         top.addWidget(info_btn)
         root.addLayout(top)
 
-        # --- three blocks ---
-        blocks = QHBoxLayout()
+        # --- three blocks, stacked top-to-bottom ---
+        blocks = QVBoxLayout()
         blocks.setSpacing(16)
         root.addLayout(blocks, stretch=1)
 
+        def _centered_row(*buttons: QWidget) -> QHBoxLayout:
+            row = QHBoxLayout()
+            row.addStretch(1)
+            for b in buttons:
+                row.addWidget(b)
+            row.addStretch(1)
+            return row
+
         # 1. Предобработка
         b1 = TrapezoidFrame("Предобработка аудиозаписей")
-        body1 = b1.body_layout()
         btn_edit = _BlockButton("Редактирование аудио")
         btn_edit.clicked.connect(self._show_preprocess_menu)
-        body1.addWidget(btn_edit)
-        body1.addStretch(1)
+        b1.body_layout().addLayout(_centered_row(btn_edit))
         blocks.addWidget(b1, stretch=1)
 
         # 2. RVC
         b2 = TrapezoidFrame("Преобразование голоса")
-        body2 = b2.body_layout()
         btn_rvc_train = _BlockButton("Обучить модель (RVC)")
         btn_rvc_train.clicked.connect(self._open_rvc_train)
         btn_rvc_infer = _BlockButton("Преобразовать голос")
         btn_rvc_infer.clicked.connect(self._open_rvc_infer)
-        body2.addWidget(btn_rvc_train)
-        body2.addWidget(btn_rvc_infer)
-        body2.addStretch(1)
+        b2.body_layout().addLayout(_centered_row(btn_rvc_train, btn_rvc_infer))
         blocks.addWidget(b2, stretch=1)
 
         # 3. TTS
         b3 = TrapezoidFrame("Преобразование текста в речь")
-        body3 = b3.body_layout()
         btn_tts_train = _BlockButton("Обучить модель (TTS)")
         btn_tts_train.clicked.connect(self._open_tts_train)
         btn_tts_infer = _BlockButton("Преобразовать текст в речь")
         btn_tts_infer.clicked.connect(self._open_tts_infer)
-        body3.addWidget(btn_tts_train)
-        body3.addWidget(btn_tts_infer)
-        body3.addStretch(1)
+        b3.body_layout().addLayout(_centered_row(btn_tts_train, btn_tts_infer))
         blocks.addWidget(b3, stretch=1)
 
         # status bar

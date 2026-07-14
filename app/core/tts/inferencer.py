@@ -86,10 +86,12 @@ def _synthesize(cfg: TtsInferConfig) -> tuple[np.ndarray, int]:
 
 
 def _apply_length_scale(audio: np.ndarray, sr: int, length_scale: float) -> np.ndarray:
+    # "Темп речи" is a direct speed factor: lower = slower. time_stretch rate
+    # follows the same direction (rate<1 slows down), so use it as-is.
     if abs(length_scale - 1.0) < 1e-3:
         return audio
     import librosa
-    rate = 1.0 / max(length_scale, 1e-3)
+    rate = max(length_scale, 1e-3)
     return librosa.effects.time_stretch(audio, rate=rate).astype(np.float32)
 
 
