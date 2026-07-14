@@ -43,10 +43,21 @@ def _enable_cross_integrity_drag_drop() -> None:
         pass
 
 
+def _load_bundled_fonts() -> None:
+    """Register fonts shipped with the app (e.g. Alumni Sans for the menu
+    buttons) so they're available regardless of what's installed on the OS."""
+    from pathlib import Path
+    from PySide6.QtGui import QFontDatabase
+    fonts_dir = Path(__file__).resolve().parent / "assets" / "fonts"
+    for ttf in fonts_dir.glob("*.ttf"):
+        QFontDatabase.addApplicationFont(str(ttf))
+
+
 def main() -> int:
     ensure_dirs()
     _enable_cross_integrity_drag_drop()
     app = QApplication(sys.argv)
+    _load_bundled_fonts()
     # Defer import so config dirs exist before any subwidget queries them
     from app.ui.main_window import MainWindow
     win = MainWindow()

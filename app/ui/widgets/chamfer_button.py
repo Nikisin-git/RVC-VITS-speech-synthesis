@@ -18,9 +18,12 @@ class ChamferButton(QPushButton):
         super().__init__(text, parent)
         self._chamfer = chamfer
         self._hover = False
-        self._font_pt = 14  # drawn font size — set explicitly in paintEvent
+        # Alumni Sans is condensed/tall, so it needs a larger point size than
+        # a normal sans to read at the same visual weight.
+        self._font_family = "Alumni Sans"
+        self._font_pt = 19
         self.setCursor(Qt.PointingHandCursor)
-        # Wide enough that the longest label fits on a single line at 14pt.
+        # Wide enough that the longest label fits on a single line.
         self.setFixedWidth(300)
         self.setMinimumHeight(50)
 
@@ -81,13 +84,13 @@ class ChamferButton(QPushButton):
         p.drawPolygon(poly)
 
         p.setPen(fg)
-        # Set the font EXPLICITLY on the painter. The themes' global
-        # `* { font-size: 12px }` QSS rule overrides any setFont() on the
-        # widget, so we must build our own QFont here to control text size.
-        # Not bold — bold is reserved for the block titles.
-        font = QFont(self.font())
-        font.setPointSize(self._font_pt)
-        font.setBold(False)
+        # Build the font EXPLICITLY (family + size + weight). The themes'
+        # global `* { font-size: 12px }` QSS rule overrides setFont() on the
+        # widget, so the painter font is the only reliable control. Alumni Sans
+        # is a variable font whose default instance is Thin, so we pin Normal
+        # weight; if the family isn't loaded Qt falls back automatically.
+        font = QFont(self._font_family, self._font_pt)
+        font.setWeight(QFont.Weight.Normal)
         p.setFont(font)
         # Single line, centered, small interior margin.
         p.drawText(self.rect().adjusted(8, 4, -8, -4),
