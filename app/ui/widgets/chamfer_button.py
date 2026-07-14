@@ -18,10 +18,11 @@ class ChamferButton(QPushButton):
         super().__init__(text, parent)
         self._chamfer = chamfer
         self._hover = False
-        # Alumni Sans is condensed/tall, so it needs a larger point size than
-        # a normal sans to read at the same visual weight.
-        self._font_family = "Alumni Sans"
-        self._font_pt = 19
+        # Exo 2 is a restrained sci-fi techno-grotesque with normal (not
+        # condensed) proportions, so it reads naturally at a moderate size —
+        # unlike the tall/condensed Alumni Sans, which looked stretched.
+        self._font_family = "Exo 2"
+        self._font_pt = 16
         self.setCursor(Qt.PointingHandCursor)
         # Wide enough that the longest label fits on a single line.
         self.setFixedWidth(300)
@@ -86,8 +87,8 @@ class ChamferButton(QPushButton):
         p.setPen(fg)
         # Build the font EXPLICITLY (family + size + weight). The themes'
         # global `* { font-size: 12px }` QSS rule overrides setFont() on the
-        # widget, so the painter font is the only reliable control. Alumni Sans
-        # is a variable font whose default instance is Thin, so we pin Normal
+        # widget, so the painter font is the only reliable control. Exo 2 is a
+        # variable font whose default instance can be light, so we pin Normal
         # weight; if the family isn't loaded Qt falls back automatically.
         font = QFont(self._font_family, self._font_pt)
         font.setWeight(QFont.Weight.Normal)

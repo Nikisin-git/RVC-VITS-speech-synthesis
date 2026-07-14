@@ -44,8 +44,8 @@ def _enable_cross_integrity_drag_drop() -> None:
 
 
 def _load_bundled_fonts() -> None:
-    """Register fonts shipped with the app (e.g. Alumni Sans for the menu
-    buttons) so they're available regardless of what's installed on the OS."""
+    """Register fonts shipped with the app (e.g. Exo 2 for the menu buttons)
+    so they're available regardless of what's installed on the OS."""
     from pathlib import Path
     from PySide6.QtGui import QFontDatabase
     fonts_dir = Path(__file__).resolve().parent / "assets" / "fonts"
