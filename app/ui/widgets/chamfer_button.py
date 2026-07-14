@@ -19,21 +19,21 @@ class ChamferButton(QPushButton):
         self._chamfer = chamfer
         self._hover = False
         self.setCursor(Qt.PointingHandCursor)
-        # Narrow, square-ish footprint.
-        self.setFixedWidth(240)
-        self.setMinimumHeight(58)
-        # Large font so labels nearly reach the button edges.
+        # Narrow, square-ish footprint with room for a medium text margin.
+        self.setFixedWidth(250)
+        self.setMinimumHeight(62)
+        # Large bold font.
         f = self.font()
-        f.setPointSize(14)
+        f.setPointSize(15)
         f.setBold(True)
         self.setFont(f)
 
-        # Default (dark) colour scheme; overridden by set_theme_colors().
-        self._base = QColor("#3a4a6a")
-        self._hover_c = QColor("#4a5f88")
-        self._pressed = QColor("#2c3a55")
-        self._border = QColor("#5a7ab0")
-        self._text = QColor("#f0f4ff")
+        # Default (dark-gray) colour scheme; overridden by set_theme_colors().
+        self._base = QColor("#3a3a3e")
+        self._hover_c = QColor("#4a4a50")
+        self._pressed = QColor("#2a2a2e")
+        self._border = QColor("#5a5a62")
+        self._text = QColor("#f0f0f0")
 
     def set_theme_colors(self, base: str, hover: str, pressed: str,
                          border: str, text: str) -> None:
@@ -85,5 +85,6 @@ class ChamferButton(QPushButton):
         p.drawPolygon(poly)
 
         p.setPen(fg)
-        p.drawText(self.rect().adjusted(4, 3, -4, -3),
+        # Medium interior margin between text and the button edges.
+        p.drawText(self.rect().adjusted(14, 9, -14, -9),
                    Qt.AlignCenter | Qt.TextWordWrap, self.text())

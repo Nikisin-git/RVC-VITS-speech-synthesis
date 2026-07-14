@@ -39,9 +39,9 @@ class _BlockButton(ChamferButton):
 
 # Per-theme button colours (base, hover, pressed, border, text).
 _BUTTON_THEMES = {
-    "dark":      ("#17325c", "#22467e", "#0f2242", "#3f6daa", "#eaf2ff"),
+    "dark":      ("#3a3a3e", "#4a4a50", "#2a2a2e", "#5a5a62", "#f0f0f0"),
     "light":     ("#d6e4f7", "#c0d6f2", "#a8c8ec", "#4a8aff", "#1a3358"),
-    "gray":      ("#5d5d62", "#6e6e74", "#4a4a4d", "#9aa8bc", "#f2f2f2"),
+    "gray":      ("#4a4a4e", "#5a5a60", "#3a3a3e", "#8a8a92", "#f2f2f2"),
     "blue_gray": ("#3e526a", "#4a627e", "#2c3a4a", "#6fa0d4", "#eaf2ff"),
 }
 
@@ -50,7 +50,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} {APP_VERSION}")
-        self.resize(560, 700)
+        self.resize(560, 610)
         self._env = run_checks()
         self._children: list[QWidget] = []
 
