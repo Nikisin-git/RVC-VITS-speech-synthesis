@@ -8,7 +8,7 @@ reacts to hover/press. Colours are set per theme via set_theme_colors().
 from __future__ import annotations
 
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QColor, QPainter, QPen, QPolygon
+from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPolygon
 from PySide6.QtWidgets import QPushButton, QWidget
 
 
@@ -18,15 +18,11 @@ class ChamferButton(QPushButton):
         super().__init__(text, parent)
         self._chamfer = chamfer
         self._hover = False
+        self._font_pt = 17  # drawn font size — set explicitly in paintEvent
         self.setCursor(Qt.PointingHandCursor)
         # Narrow, square-ish footprint.
         self.setFixedWidth(250)
         self.setMinimumHeight(64)
-        # Big bold font that nearly reaches the button edges.
-        f = self.font()
-        f.setPointSize(16)
-        f.setBold(True)
-        self.setFont(f)
 
         # Default (dark-gray) colour scheme; overridden by set_theme_colors().
         self._base = QColor("#3a3a3e")
@@ -85,6 +81,13 @@ class ChamferButton(QPushButton):
         p.drawPolygon(poly)
 
         p.setPen(fg)
+        # Set the font EXPLICITLY on the painter. The themes' global
+        # `* { font-size: 12px }` QSS rule overrides any setFont() on the
+        # widget, so we must build our own QFont here to control text size.
+        font = QFont(self.font())
+        font.setPointSize(self._font_pt)
+        font.setBold(True)
+        p.setFont(font)
         # Small interior margin so the large text sits close to the edges.
         p.drawText(self.rect().adjusted(7, 4, -7, -4),
                    Qt.AlignCenter | Qt.TextWordWrap, self.text())
