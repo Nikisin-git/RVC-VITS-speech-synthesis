@@ -42,7 +42,7 @@ _BUTTON_THEMES = {
     "dark":      ("#3a3a3e", "#4a4a50", "#2a2a2e", "#5a5a62", "#f0f0f0"),  # dark gray
     "light":     ("#ffffff", "#f0f0f0", "#e2e2e2", "#b8b8b8", "#000000"),  # white, black text
     "gray":      ("#b8b8be", "#c8c8ce", "#a4a4aa", "#8a8a92", "#20232a"),  # light gray, dark text
-    "blue_gray": ("#b8d0ec", "#c8dcf4", "#a2c2e6", "#6fa0d4", "#152c4d"),  # light blue, dark text
+    "blue_gray": ("#17325c", "#22467e", "#0f2242", "#3f6daa", "#ffffff"),  # dark blue, white text
 }
 
 
@@ -50,7 +50,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} {APP_VERSION}")
-        self.resize(560, 610)
+        self.resize(600, 560)
         self._env = run_checks()
         self._children: list[QWidget] = []
 

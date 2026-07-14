@@ -18,11 +18,11 @@ class ChamferButton(QPushButton):
         super().__init__(text, parent)
         self._chamfer = chamfer
         self._hover = False
-        self._font_pt = 17  # drawn font size — set explicitly in paintEvent
+        self._font_pt = 14  # drawn font size — set explicitly in paintEvent
         self.setCursor(Qt.PointingHandCursor)
-        # Narrow, square-ish footprint.
-        self.setFixedWidth(250)
-        self.setMinimumHeight(64)
+        # Wide enough that the longest label fits on a single line at 14pt.
+        self.setFixedWidth(300)
+        self.setMinimumHeight(50)
 
         # Default (dark-gray) colour scheme; overridden by set_theme_colors().
         self._base = QColor("#3a3a3e")
@@ -84,10 +84,11 @@ class ChamferButton(QPushButton):
         # Set the font EXPLICITLY on the painter. The themes' global
         # `* { font-size: 12px }` QSS rule overrides any setFont() on the
         # widget, so we must build our own QFont here to control text size.
+        # Not bold — bold is reserved for the block titles.
         font = QFont(self.font())
         font.setPointSize(self._font_pt)
-        font.setBold(True)
+        font.setBold(False)
         p.setFont(font)
-        # Small interior margin so the large text sits close to the edges.
-        p.drawText(self.rect().adjusted(7, 4, -7, -4),
-                   Qt.AlignCenter | Qt.TextWordWrap, self.text())
+        # Single line, centered, small interior margin.
+        p.drawText(self.rect().adjusted(8, 4, -8, -4),
+                   Qt.AlignCenter, self.text())
