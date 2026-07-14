@@ -39,7 +39,7 @@ class _BlockButton(ChamferButton):
 
 # Per-theme button colours (base, hover, pressed, border, text).
 _BUTTON_THEMES = {
-    "dark":      ("#3a4a6a", "#4a5f88", "#2c3a55", "#5a7ab0", "#f0f4ff"),
+    "dark":      ("#17325c", "#22467e", "#0f2242", "#3f6daa", "#eaf2ff"),
     "light":     ("#d6e4f7", "#c0d6f2", "#a8c8ec", "#4a8aff", "#1a3358"),
     "gray":      ("#5d5d62", "#6e6e74", "#4a4a4d", "#9aa8bc", "#f2f2f2"),
     "blue_gray": ("#3e526a", "#4a627e", "#2c3a4a", "#6fa0d4", "#eaf2ff"),
@@ -50,7 +50,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} {APP_VERSION}")
-        self.resize(960, 640)
+        self.resize(560, 700)
         self._env = run_checks()
         self._children: list[QWidget] = []
 
@@ -76,25 +76,24 @@ class MainWindow(QMainWindow):
         top.addWidget(info_btn)
         root.addLayout(top)
 
-        # --- three blocks, stacked top-to-bottom ---
+        # --- three blocks, stacked top-to-bottom, clustered at the top ---
         blocks = QVBoxLayout()
-        blocks.setSpacing(16)
+        blocks.setSpacing(12)
         root.addLayout(blocks, stretch=1)
 
         def _stack(block: TrapezoidFrame, *buttons: QWidget) -> None:
-            """Left-aligned vertical stack of buttons with small spacing."""
+            """Left-aligned vertical stack of buttons with even spacing."""
             body = block.body_layout()
-            body.setSpacing(10)
+            body.setSpacing(12)
             for b in buttons:
                 body.addWidget(b, 0, Qt.AlignLeft)
-            body.addStretch(1)
 
         # 1. Предобработка
         b1 = TrapezoidFrame("Предобработка аудиозаписей")
         btn_edit = _BlockButton("Редактирование аудио")
         btn_edit.clicked.connect(self._show_preprocess_menu)
         _stack(b1, btn_edit)
-        blocks.addWidget(b1, stretch=1)
+        blocks.addWidget(b1)
 
         # 2. RVC
         b2 = TrapezoidFrame("Преобразование голоса")
@@ -103,7 +102,7 @@ class MainWindow(QMainWindow):
         btn_rvc_infer = _BlockButton("Преобразовать голос")
         btn_rvc_infer.clicked.connect(self._open_rvc_infer)
         _stack(b2, btn_rvc_train, btn_rvc_infer)
-        blocks.addWidget(b2, stretch=1)
+        blocks.addWidget(b2)
 
         # 3. TTS
         b3 = TrapezoidFrame("Преобразование текста в речь")
@@ -112,7 +111,10 @@ class MainWindow(QMainWindow):
         btn_tts_infer = _BlockButton("Преобразовать текст в речь")
         btn_tts_infer.clicked.connect(self._open_tts_infer)
         _stack(b3, btn_tts_train, btn_tts_infer)
-        blocks.addWidget(b3, stretch=1)
+        blocks.addWidget(b3)
+
+        # Push the compact blocks up so empty space sits at the bottom.
+        blocks.addStretch(1)
 
         self._block_buttons = [btn_edit, btn_rvc_train, btn_rvc_infer,
                                btn_tts_train, btn_tts_infer]

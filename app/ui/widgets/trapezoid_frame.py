@@ -13,21 +13,23 @@ class TrapezoidFrame(QFrame):
     def __init__(self, title: str = "", parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("trapezoid_frame")
-        self.setMinimumHeight(140)
+        self.setMinimumHeight(80)
 
         self._title = title
-        self._header_h = 36
+        self._header_h = 22
         self._title_label = QLabel(title)
         self._title_label.setObjectName("trapezoid_title")
         # Left-aligned title, cleared from the slanted top-left corner.
         self._title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self._title_label.setContentsMargins(20, 0, 0, 0)
+        self._title_label.setContentsMargins(18, 0, 0, 0)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, self._header_h + 8, 12, 14)
+        # Tight margins so the title/buttons hug the top and blocks stay dense.
+        layout.setContentsMargins(18, self._header_h + 2, 10, 10)
+        layout.setSpacing(6)
         layout.addWidget(self._title_label, 0, Qt.AlignTop | Qt.AlignLeft)
         self._body_layout = QVBoxLayout()
-        layout.addLayout(self._body_layout, stretch=1)
+        layout.addLayout(self._body_layout)
 
     def body_layout(self) -> QVBoxLayout:
         return self._body_layout

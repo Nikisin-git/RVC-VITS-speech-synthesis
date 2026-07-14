@@ -20,11 +20,12 @@ class ChamferButton(QPushButton):
         self._hover = False
         self.setCursor(Qt.PointingHandCursor)
         # Narrow, square-ish footprint.
-        self.setFixedWidth(230)
-        self.setMinimumHeight(66)
-        # Larger font so labels nearly reach the button edges.
+        self.setFixedWidth(240)
+        self.setMinimumHeight(58)
+        # Large font so labels nearly reach the button edges.
         f = self.font()
-        f.setPointSize(12)
+        f.setPointSize(14)
+        f.setBold(True)
         self.setFont(f)
 
         # Default (dark) colour scheme; overridden by set_theme_colors().
