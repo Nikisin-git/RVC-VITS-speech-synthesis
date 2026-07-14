@@ -48,7 +48,7 @@ class TtsInferenceWindow(QWidget):
 
         params = QGroupBox("Параметры генерации")
         pl = QVBoxLayout(params)
-        self._length = SliderWithInput("Темп речи (меньше — медленнее)", 0.5, 2.0, 0.05, 1.0, decimals=2)
+        self._length = SliderWithInput("Темп речи (меньше — медленнее)", 0.25, 2.0, 0.05, 1.0, decimals=2)
         self._pitch = SliderWithInput("Высота голоса, полутонов", -12, 12, 1, 0, decimals=0)
         pl.addWidget(self._length)
         pl.addWidget(self._pitch)
