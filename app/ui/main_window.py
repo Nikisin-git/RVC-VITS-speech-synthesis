@@ -39,10 +39,10 @@ class _BlockButton(ChamferButton):
 
 # Per-theme button colours (base, hover, pressed, border, text).
 _BUTTON_THEMES = {
-    "dark":      ("#3a3a3e", "#4a4a50", "#2a2a2e", "#5a5a62", "#f0f0f0"),
-    "light":     ("#d6e4f7", "#c0d6f2", "#a8c8ec", "#4a8aff", "#1a3358"),
-    "gray":      ("#4a4a4e", "#5a5a60", "#3a3a3e", "#8a8a92", "#f2f2f2"),
-    "blue_gray": ("#3e526a", "#4a627e", "#2c3a4a", "#6fa0d4", "#eaf2ff"),
+    "dark":      ("#3a3a3e", "#4a4a50", "#2a2a2e", "#5a5a62", "#f0f0f0"),  # dark gray
+    "light":     ("#ffffff", "#f0f0f0", "#e2e2e2", "#b8b8b8", "#000000"),  # white, black text
+    "gray":      ("#b8b8be", "#c8c8ce", "#a4a4aa", "#8a8a92", "#20232a"),  # light gray, dark text
+    "blue_gray": ("#b8d0ec", "#c8dcf4", "#a2c2e6", "#6fa0d4", "#152c4d"),  # light blue, dark text
 }
 
 

@@ -22,7 +22,7 @@ QProgressBar::chunk { background: #6fa0d4; border-radius: 3px; }
 QPushButton#file_row_remove { background: transparent; border: 1px solid #6e88a8; border-radius: 12px; color: #c8d8e8; font-weight: bold; padding: 0; }
 QPushButton#file_row_remove:hover { background: #804040; border-color: #e05050; color: #ffe0e0; }
 QPushButton#file_row_remove:pressed { background: #a02020; }
-#trapezoid_title { color: #fff; font-weight: bold; font-size: 17px; }
+#trapezoid_title { color: #fff; font-weight: bold; font-size: 17px; background: transparent; }
 #error_label { color: #ffb0b0; }
 #hint { color: #b8c8d8; font-style: italic; }
 #metrics { color: #b0e6c5; font-weight: bold; padding: 4px; }

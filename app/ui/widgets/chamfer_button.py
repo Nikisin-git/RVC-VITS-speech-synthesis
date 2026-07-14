@@ -19,12 +19,12 @@ class ChamferButton(QPushButton):
         self._chamfer = chamfer
         self._hover = False
         self.setCursor(Qt.PointingHandCursor)
-        # Narrow, square-ish footprint with room for a medium text margin.
+        # Narrow, square-ish footprint.
         self.setFixedWidth(250)
-        self.setMinimumHeight(62)
-        # Large bold font.
+        self.setMinimumHeight(64)
+        # Big bold font that nearly reaches the button edges.
         f = self.font()
-        f.setPointSize(15)
+        f.setPointSize(16)
         f.setBold(True)
         self.setFont(f)
 
@@ -85,6 +85,6 @@ class ChamferButton(QPushButton):
         p.drawPolygon(poly)
 
         p.setPen(fg)
-        # Medium interior margin between text and the button edges.
-        p.drawText(self.rect().adjusted(14, 9, -14, -9),
+        # Small interior margin so the large text sits close to the edges.
+        p.drawText(self.rect().adjusted(7, 4, -7, -4),
                    Qt.AlignCenter | Qt.TextWordWrap, self.text())

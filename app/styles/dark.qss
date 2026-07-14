@@ -123,6 +123,7 @@ QPushButton#file_row_remove:pressed {
     color: #fff;
     font-weight: bold;
     font-size: 17px;
+    background: transparent;
 }
 #error_label { color: #ff8080; }
 #hint { color: #999; font-style: italic; }
