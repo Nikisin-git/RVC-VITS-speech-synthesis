@@ -37,6 +37,15 @@ class _BlockButton(ChamferButton):
     """Narrow, square-ish button with 45°-cut corners for the main menu."""
 
 
+# Per-theme button colours (base, hover, pressed, border, text).
+_BUTTON_THEMES = {
+    "dark":      ("#3a4a6a", "#4a5f88", "#2c3a55", "#5a7ab0", "#f0f4ff"),
+    "light":     ("#d6e4f7", "#c0d6f2", "#a8c8ec", "#4a8aff", "#1a3358"),
+    "gray":      ("#5d5d62", "#6e6e74", "#4a4a4d", "#9aa8bc", "#f2f2f2"),
+    "blue_gray": ("#3e526a", "#4a627e", "#2c3a4a", "#6fa0d4", "#eaf2ff"),
+}
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -72,19 +81,19 @@ class MainWindow(QMainWindow):
         blocks.setSpacing(16)
         root.addLayout(blocks, stretch=1)
 
-        def _centered_row(*buttons: QWidget) -> QHBoxLayout:
-            row = QHBoxLayout()
-            row.addStretch(1)
+        def _stack(block: TrapezoidFrame, *buttons: QWidget) -> None:
+            """Left-aligned vertical stack of buttons with small spacing."""
+            body = block.body_layout()
+            body.setSpacing(10)
             for b in buttons:
-                row.addWidget(b)
-            row.addStretch(1)
-            return row
+                body.addWidget(b, 0, Qt.AlignLeft)
+            body.addStretch(1)
 
         # 1. Предобработка
         b1 = TrapezoidFrame("Предобработка аудиозаписей")
         btn_edit = _BlockButton("Редактирование аудио")
         btn_edit.clicked.connect(self._show_preprocess_menu)
-        b1.body_layout().addLayout(_centered_row(btn_edit))
+        _stack(b1, btn_edit)
         blocks.addWidget(b1, stretch=1)
 
         # 2. RVC
@@ -93,7 +102,7 @@ class MainWindow(QMainWindow):
         btn_rvc_train.clicked.connect(self._open_rvc_train)
         btn_rvc_infer = _BlockButton("Преобразовать голос")
         btn_rvc_infer.clicked.connect(self._open_rvc_infer)
-        b2.body_layout().addLayout(_centered_row(btn_rvc_train, btn_rvc_infer))
+        _stack(b2, btn_rvc_train, btn_rvc_infer)
         blocks.addWidget(b2, stretch=1)
 
         # 3. TTS
@@ -102,8 +111,11 @@ class MainWindow(QMainWindow):
         btn_tts_train.clicked.connect(self._open_tts_train)
         btn_tts_infer = _BlockButton("Преобразовать текст в речь")
         btn_tts_infer.clicked.connect(self._open_tts_infer)
-        b3.body_layout().addLayout(_centered_row(btn_tts_train, btn_tts_infer))
+        _stack(b3, btn_tts_train, btn_tts_infer)
         blocks.addWidget(b3, stretch=1)
+
+        self._block_buttons = [btn_edit, btn_rvc_train, btn_rvc_infer,
+                               btn_tts_train, btn_tts_infer]
 
         # status bar
         status_lines = []
@@ -117,9 +129,12 @@ class MainWindow(QMainWindow):
     # --- theme ---
     def _apply_theme(self, theme: str) -> None:
         qss = load_theme(theme)
-        app = self.window().window()  # type: ignore
         from PySide6.QtWidgets import QApplication
         QApplication.instance().setStyleSheet(qss)
+        # Recolour the chamfered menu buttons to match the theme.
+        colors = _BUTTON_THEMES.get(theme, _BUTTON_THEMES["dark"])
+        for b in getattr(self, "_block_buttons", []):
+            b.set_theme_colors(*colors)
 
     # --- info ---
     def _show_info(self) -> None:

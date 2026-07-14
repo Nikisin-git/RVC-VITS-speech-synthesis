@@ -122,7 +122,7 @@ QPushButton#file_row_remove:pressed {
 #trapezoid_title {
     color: #fff;
     font-weight: bold;
-    font-size: 13px;
+    font-size: 17px;
 }
 #error_label { color: #ff8080; }
 #hint { color: #999; font-style: italic; }

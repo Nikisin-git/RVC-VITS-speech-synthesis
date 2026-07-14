@@ -16,14 +16,16 @@ class TrapezoidFrame(QFrame):
         self.setMinimumHeight(140)
 
         self._title = title
-        self._header_h = 28
+        self._header_h = 36
         self._title_label = QLabel(title)
         self._title_label.setObjectName("trapezoid_title")
-        self._title_label.setAlignment(Qt.AlignCenter)
+        # Left-aligned title, cleared from the slanted top-left corner.
+        self._title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self._title_label.setContentsMargins(20, 0, 0, 0)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, self._header_h + 6, 12, 12)
-        layout.addWidget(self._title_label, 0, Qt.AlignTop | Qt.AlignHCenter)
+        layout.setContentsMargins(20, self._header_h + 8, 12, 14)
+        layout.addWidget(self._title_label, 0, Qt.AlignTop | Qt.AlignLeft)
         self._body_layout = QVBoxLayout()
         layout.addLayout(self._body_layout, stretch=1)
 

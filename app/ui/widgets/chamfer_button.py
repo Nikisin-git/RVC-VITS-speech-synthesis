@@ -2,8 +2,7 @@
 
 QSS `border-radius` only rounds corners; a true 45° cut needs an octagonal
 shape drawn by hand. This button paints that polygon, wraps long labels, and
-reacts to hover/press. Colours are theme-neutral so it looks consistent
-across the app's four themes.
+reacts to hover/press. Colours are set per theme via set_theme_colors().
 """
 
 from __future__ import annotations
@@ -21,8 +20,28 @@ class ChamferButton(QPushButton):
         self._hover = False
         self.setCursor(Qt.PointingHandCursor)
         # Narrow, square-ish footprint.
-        self.setFixedWidth(210)
-        self.setMinimumHeight(64)
+        self.setFixedWidth(230)
+        self.setMinimumHeight(66)
+        # Larger font so labels nearly reach the button edges.
+        f = self.font()
+        f.setPointSize(12)
+        self.setFont(f)
+
+        # Default (dark) colour scheme; overridden by set_theme_colors().
+        self._base = QColor("#3a4a6a")
+        self._hover_c = QColor("#4a5f88")
+        self._pressed = QColor("#2c3a55")
+        self._border = QColor("#5a7ab0")
+        self._text = QColor("#f0f4ff")
+
+    def set_theme_colors(self, base: str, hover: str, pressed: str,
+                         border: str, text: str) -> None:
+        self._base = QColor(base)
+        self._hover_c = QColor(hover)
+        self._pressed = QColor(pressed)
+        self._border = QColor(border)
+        self._text = QColor(text)
+        self.update()
 
     def enterEvent(self, e) -> None:  # noqa: N802
         self._hover = True
@@ -48,13 +67,15 @@ class ChamferButton(QPushButton):
         ])
 
         if not self.isEnabled():
-            bg, border, fg = QColor("#3a3a40"), QColor("#4a4a52"), QColor("#888")
+            bg = self._base.darker(140)
+            border = self._border.darker(140)
+            fg = QColor("#888")
         elif self.isDown():
-            bg, border, fg = QColor("#2c3a55"), QColor("#5a7ab0"), QColor("#eaf0ff")
+            bg, border, fg = self._pressed, self._border.lighter(120), self._text
         elif self._hover:
-            bg, border, fg = QColor("#4a5f88"), QColor("#7a9cd8"), QColor("#ffffff")
+            bg, border, fg = self._hover_c, self._border.lighter(130), self._text
         else:
-            bg, border, fg = QColor("#3a4a6a"), QColor("#5a7ab0"), QColor("#f0f4ff")
+            bg, border, fg = self._base, self._border, self._text
 
         pen = QPen(border)
         pen.setWidth(2)
@@ -63,6 +84,5 @@ class ChamferButton(QPushButton):
         p.drawPolygon(poly)
 
         p.setPen(fg)
-        # Word-wrap so long labels fit the narrow button.
-        p.drawText(self.rect().adjusted(6, 4, -6, -4),
+        p.drawText(self.rect().adjusted(4, 3, -4, -3),
                    Qt.AlignCenter | Qt.TextWordWrap, self.text())
