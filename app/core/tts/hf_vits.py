@@ -30,6 +30,7 @@ class HfVitsInferConfig:
     model_dir: Path                 # folder or HF id with config.json + weights
     text: str
     length_scale: float = 1.0       # >1 slower speech (maps to speaking_rate)
+    pitch_shift_semitones: int = 0  # -12..+12, applied as post-processing
     noise_scale: float | None = None
     output_format: str = "wav"
     model_name: str = "model"
@@ -84,8 +85,19 @@ def _synthesize(cfg: HfVitsInferConfig) -> tuple[np.ndarray, int]:
     return audio, sr
 
 
+def _apply_pitch_shift(audio: np.ndarray, sr: int, semitones: int) -> np.ndarray:
+    """Shift pitch without changing duration (makes the voice thinner/thicker).
+    HF VitsModel has no native pitch control, so we post-process the waveform."""
+    if semitones == 0:
+        return audio
+    import librosa
+    return librosa.effects.pitch_shift(
+        audio, sr=sr, n_steps=float(semitones)).astype(np.float32)
+
+
 def infer(cfg: HfVitsInferConfig) -> Path:
     audio, sr = _synthesize(cfg)
+    audio = _apply_pitch_shift(audio, sr, cfg.pitch_shift_semitones)
     out_dir = ensure_dir(VITS_DIR / "Inference Results")
     safe_stem = text_to_filename(cfg.text, max_len=20)
     target = out_dir / f"{safe_stem}_{cfg.model_name}_ver"

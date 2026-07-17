@@ -47,6 +47,7 @@ def main() -> int:
             out_path = hf_infer(HfVitsInferConfig(
                 model_dir=model_dir, text=text,
                 length_scale=args.length_scale,
+                pitch_shift_semitones=args.pitch_shift,
                 output_format=args.format, model_name=args.model_name,
             ))
             # reference_speaker.wav lives in the run/ folder; when inferring
