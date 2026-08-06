@@ -45,7 +45,7 @@
 - В статус-баре — результат проверки окружения (`run_checks()`): CUDA, FFmpeg.
 - При отсутствии CUDA кнопки обучения блокируются в соответствующих окнах.
 
-    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/01_main.png)
+     ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/01_main.png)
 
 ---
 
@@ -60,7 +60,7 @@
   версия PyTorch, наличие FFmpeg, объём VRAM).
 - Ссылка на репозиторий с исходным кодом.
 
-  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/02_info_dialog.png)
+     ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/02_info_dialog.png)
 ---
 
 ## 3. Формы предобработки аудио
