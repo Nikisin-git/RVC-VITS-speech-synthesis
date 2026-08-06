@@ -45,7 +45,7 @@
 - В статус-баре — результат проверки окружения (`run_checks()`): CUDA, FFmpeg.
 - При отсутствии CUDA кнопки обучения блокируются в соответствующих окнах.
 
-![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/01_main.png)
+    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/01_main.png)
 
 ---
 
@@ -60,6 +60,7 @@
   версия PyTorch, наличие FFmpeg, объём VRAM).
 - Ссылка на репозиторий с исходным кодом.
 
+  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/02_info_dialog.png)
 ---
 
 ## 3. Формы предобработки аудио
@@ -69,6 +70,8 @@
 - Радиокнопки выбора выходного формата (`make_format_radio`).
 - Кнопка «Выполнить», запускающая CLI-скрипт через `ProcessWorker` (QProcess).
 - Диалог прогресса (`ProgressDialog`) с логом и возможностью отмены.
+
+  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/03_audio.png)
 
 ### 3.1. Отделение вокала (`VocalRemoverWindow`)
 
@@ -82,6 +85,8 @@
 - Выбор формата вывода: WAV / MP3.
 - Кнопка «Выполнить».
 
+  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/04_vocal_remover.png)
+
 ### 3.2. Шумоподавление (`DenoiserWindow`)
 
 **Файл:** [`app/ui/preprocessing/denoiser.py`](app/ui/preprocessing/denoiser.py)
@@ -93,6 +98,8 @@
 - Область drag-and-drop.
 - Выбор формата вывода.
 - Кнопка «Выполнить».
+
+  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/05_denoiser.png)
 
 ### 3.3. Удаление тихих мест (`SilenceRemoverWindow`)
 
@@ -106,6 +113,9 @@
 - Слайдер «Допустимая длительность паузы, сек» (0.5–5.0, шаг 0.5).
 - Слайдер «Порог тишины, дБ» (−100…0).
 - Кнопка «Выполнить».
+
+    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/06_silence_remover.png)
+
 
 ### 3.4. Нарезка на фрагменты (`SlicerWindow`)
 
@@ -123,6 +133,8 @@
 - Группа «Что делать с фрагментами короче 4 секунд»: сохранить / дописать к
   предыдущему / отбросить.
 - Кнопка «Выполнить».
+
+  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/07_slicer.png)
 
 ---
 
@@ -152,6 +164,8 @@
 **Поведение при отсутствии CUDA:** кнопка «Начать обучение» отключена,
 показывается предупреждение.
 
+  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/08_rvc_train.png)
+
 ### 4.2. Инференс RVC (`RvcInferenceWindow`)
 
 **Файл:** [`app/ui/rvc/inference.py`](app/ui/rvc/inference.py)
@@ -174,6 +188,8 @@
   - Подавление шума (gate): порог, соотношение, атака, спад.
 - Внизу: кнопка «Выполнить генерацию», выбор формата, аудиоплеер
   (`AudioPlayer`), надпись с метриками (WER / SECS / MCD).
+
+  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/09_rvc_inference.png)
 
 ---
 
