@@ -114,7 +114,7 @@
 - Слайдер «Порог тишины, дБ» (−100…0).
 - Кнопка «Выполнить».
 
-    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/06_silence_remover.png)
+     ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/06_silence_remover.png)
 
 
 ### 3.4. Нарезка на фрагменты (`SlicerWindow`)
@@ -134,7 +134,7 @@
   предыдущему / отбросить.
 - Кнопка «Выполнить».
 
-    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/07_slicer.png)
+     ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/07_slicer.png)
 
 ---
 
@@ -164,7 +164,7 @@
 **Поведение при отсутствии CUDA:** кнопка «Начать обучение» отключена,
 показывается предупреждение.
 
-    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/08_rvc_train.png)
+   ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/08_rvc_train.png)
 
 ### 4.2. Инференс RVC (`RvcInferenceWindow`)
 
