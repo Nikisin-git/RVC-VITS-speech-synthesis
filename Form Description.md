@@ -71,7 +71,7 @@
 - Кнопка «Выполнить», запускающая CLI-скрипт через `ProcessWorker` (QProcess).
 - Диалог прогресса (`ProgressDialog`) с логом и возможностью отмены.
 
-  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/03_audio.png)
+     ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/03_audio.png)
 
 ### 3.1. Отделение вокала (`VocalRemoverWindow`)
 
