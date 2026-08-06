@@ -176,7 +176,7 @@ voice-synthesis-app/
 
 ## 5. Локальная установка
 
-См. раздел «Структура проекта» в [DEPLOYMENT.md](DEPLOYMENT.md).
+См. раздел «Структура проекта» в [Deployment.md](Deployment.md).
 
 ---
 
