@@ -134,7 +134,7 @@
   предыдущему / отбросить.
 - Кнопка «Выполнить».
 
-  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/07_slicer.png)
+    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/07_slicer.png)
 
 ---
 
@@ -164,7 +164,7 @@
 **Поведение при отсутствии CUDA:** кнопка «Начать обучение» отключена,
 показывается предупреждение.
 
-  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/08_rvc_train.png)
+    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/08_rvc_train.png)
 
 ### 4.2. Инференс RVC (`RvcInferenceWindow`)
 
@@ -189,7 +189,7 @@
 - Внизу: кнопка «Выполнить генерацию», выбор формата, аудиоплеер
   (`AudioPlayer`), надпись с метриками (WER / SECS / MCD).
 
-  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/09_rvc_inference.png)
+    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/09_rvc_inference.png)
 
 ---
 
