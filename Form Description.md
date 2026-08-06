@@ -45,7 +45,7 @@
 - В статус-баре — результат проверки окружения (`run_checks()`): CUDA, FFmpeg.
 - При отсутствии CUDA кнопки обучения блокируются в соответствующих окнах.
 
-[https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/01_main.png]
+![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/01_main.png)
 
 ---
 
