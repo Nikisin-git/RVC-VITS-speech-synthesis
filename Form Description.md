@@ -73,6 +73,8 @@
 
      ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/03_audio.png)
 
+  
+
 ### 3.1. Отделение вокала (`VocalRemoverWindow`)
 
 **Файл:** [`app/ui/preprocessing/vocal_remover.py`](app/ui/preprocessing/vocal_remover.py)
@@ -85,7 +87,7 @@
 - Выбор формата вывода: WAV / MP3.
 - Кнопка «Выполнить».
 
-  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/04_vocal_remover.png)
+   ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/04_vocal_remover.png)
 
 ### 3.2. Шумоподавление (`DenoiserWindow`)
 
@@ -99,7 +101,7 @@
 - Выбор формата вывода.
 - Кнопка «Выполнить».
 
-  ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/05_denoiser.png)
+     ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/05_denoiser.png)
 
 ### 3.3. Удаление тихих мест (`SilenceRemoverWindow`)
 
@@ -189,7 +191,7 @@
 - Внизу: кнопка «Выполнить генерацию», выбор формата, аудиоплеер
   (`AudioPlayer`), надпись с метриками (WER / SECS / MCD).
 
-    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/09_rvc_inference.png)
+     ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/09_rvc_inference.png)
 
 ---
 
