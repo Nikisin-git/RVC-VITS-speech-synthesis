@@ -234,6 +234,18 @@
 - Перед запуском — валидация манифеста (`validate_manifest`): сверяет строки с
   наличием аудиофайлов в папке, критическое сообщение при ошибках.
 - При отсутствии CUDA кнопка заблокирована, показывается предупреждение.
+  
+**Настройки движка «Coqui VITS»** (видны при выборе этого движка):
+- Подгруппа «Режим обучения»: «С нуля (10–20 часов)» / «Дообучение (10–30 минут)»
+  (по умолчанию — дообучение).
+- Drag-and-drop базового чекпойнта `.pth` (активен и обязателен в режиме
+  «Дообучение»; при отсутствии — предупреждение о риске расхождения обучения).
+- Запуск через `scripts/run_vits_train.py`; строится живой график лоссов из
+  tfevents, прогресс по эпохам.
+- Двухступенчатая отмена: мягкая (по флагу — ждём конец эпохи), затем жёсткая (kill).
+  
+   ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/10_coqui_train.png)
+
 
 **Настройки движка «HuggingFace VITS»** (видны при выборе этого движка):
 - Поле «Репозиторий finetune-hf-vits» (`_FolderPicker`); по умолчанию берётся из
@@ -245,16 +257,9 @@
   `user_data/VITS/hf_vits_finetune/<имя>/run`. Живой график лоссов не строится
   (HF Trainer пишет собственные скаляры), прогресс виден по логу.
 
-**Настройки движка «Coqui VITS»** (видны при выборе этого движка):
-- Подгруппа «Режим обучения»: «С нуля (10–20 часов)» / «Дообучение (10–30 минут)»
-  (по умолчанию — дообучение).
-- Drag-and-drop базового чекпойнта `.pth` (активен и обязателен в режиме
-  «Дообучение»; при отсутствии — предупреждение о риске расхождения обучения).
-- Запуск через `scripts/run_vits_train.py`; строится живой график лоссов из
-  tfevents, прогресс по эпохам.
-- Двухступенчатая отмена: мягкая (по флагу — ждём конец эпохи), затем жёсткая (kill).
+    ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/11_hugging_face_train.png)
 
-   ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/10_tts_train.png)
+  
 
 ### 5.2. Синтез речи (`TtsInferenceWindow`)
 
@@ -277,7 +282,7 @@
 - Внизу: кнопка «Выполнить генерацию», выбор формата сохранения (WAV / MP3),
   аудиоплеер (`AudioPlayer`) и строка метрик (WER / SECS / MCD).
 
-   ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/11_tts_inference.png)
+   ![](https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Forms/12_tts_inference.png)
 
 ---
 
