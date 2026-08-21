@@ -8,22 +8,28 @@ Formula:
     MCD[dB] = (10/ln(10)) * mean_t( sqrt(2 * sum_k((c_ref[t,k] - c_syn[t,k])^2)) )
 
 where c are the MFCC coefficients excluding c0 (energy) and t is the frame
-index after DTW alignment. Lower values are better; a perfectly identical
-signal scores 0 dB. Typical thresholds:
+index after DTW alignment. Lower values are always better and a perfectly
+identical signal scores 0 dB.
+
+SCALE WARNING — the classical thresholds
     < 6 dB   excellent
     6 - 8    good
     8 - 12   acceptable
     > 12     poor
+apply to the *classical* mel-cepstral pipeline (pysptk/pyworld, order-24
+mel-generalized cepstrum). This implementation uses librosa's MFCCs instead
+(no extra dependency), whose magnitudes are on a DIFFERENT, much larger scale:
+empirically two parallel utterances of one speaker already score ~20 here, and
+a natural recording vs. its TTS rendition lands around ~50. So do NOT read the
+absolute value against the table above — a value of ~50 does not mean "poor".
+librosa-MCD is reliable only for RELATIVE comparison (same text, same
+reference, same seed): the lower of two models is spectrally closer to the
+target. For textbook-scale absolute MCD, use a classical pipeline (e.g. the
+`pymcd` package).
 
-This implementation uses librosa's MFCCs and DTW so we do not pull a new
-dependency. The classical pyworld/pysptk pipeline produces slightly different
-absolute numbers but the same relative ordering.
-
-NOTE: Strict MCD assumes parallel utterances of the same text. When the
-reference and target audio say different things (as for RVC/TTS where we
-have a single representative speaker sample), DTW alignment lets us still
-compute a meaningful average spectral distance, but the absolute number
-should be treated as approximate.
+NOTE: Strict MCD additionally assumes parallel utterances of the same text.
+When the reference and target say different things, DTW still yields a
+meaningful average distance, but the absolute number is inflated further.
 """
 
 from __future__ import annotations
