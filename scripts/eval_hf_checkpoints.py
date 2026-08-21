@@ -54,6 +54,10 @@ def main() -> int:
     p.add_argument("--output", default=None, help="report dir (default: <run>/_eval)")
     p.add_argument("--repo", default=None,
                    help="finetune-hf-vits repo (default: VOICEGEN_FINETUNE_HF_VITS)")
+    p.add_argument("--seed", type=int, default=1234,
+                   help="fixed RNG seed so every checkpoint is synthesized under the "
+                        "same noise and the table is reproducible (pass -1 to disable "
+                        "and let each run differ).")
     args = p.parse_args()
 
     run = Path(args.run)
@@ -104,12 +108,12 @@ def main() -> int:
             continue
 
         cfg = exp / "config.json"
-        proc = subprocess.run(
-            [sys.executable, str(infer), "--config", str(cfg), "--generator", str(cfg),
-             "--text-file", str(phrase_file), "--format", "wav",
-             "--model-name", ck.name, "--compute-metrics"],
-            capture_output=True, text=True,
-        )
+        infer_cmd = [sys.executable, str(infer), "--config", str(cfg), "--generator", str(cfg),
+                     "--text-file", str(phrase_file), "--format", "wav",
+                     "--model-name", ck.name, "--compute-metrics"]
+        if args.seed is not None and args.seed >= 0:
+            infer_cmd += ["--seed", str(args.seed)]
+        proc = subprocess.run(infer_cmd, capture_output=True, text=True)
         data = {}
         for line in proc.stdout.splitlines():
             if line.startswith("RESULT_JSON="):

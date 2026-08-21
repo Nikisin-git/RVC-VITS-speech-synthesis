@@ -17,6 +17,22 @@ from pathlib import Path
 import _bootstrap  # noqa: F401
 
 
+def _set_seed(seed: int) -> None:
+    """Seed every RNG the synthesis path touches, so a given (model, text, seed)
+    always yields the same waveform — and thus the same WER/SECS/MCD."""
+    import random
+    import numpy as np
+    random.seed(seed)
+    np.random.seed(seed)
+    try:
+        import torch
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+    except Exception:
+        pass
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--generator", required=True,
@@ -31,8 +47,15 @@ def main() -> int:
     p.add_argument("--format", default="wav", choices=["wav", "mp3"])
     p.add_argument("--model-name", default="model")
     p.add_argument("--language", default="ru")
+    p.add_argument("--seed", type=int, default=None,
+                   help="fix the RNG seed for reproducible synthesis (VITS samples "
+                        "noise for the flow and the stochastic duration predictor, "
+                        "so without a seed every run differs).")
     p.add_argument("--compute-metrics", action="store_true")
     args = p.parse_args()
+
+    if args.seed is not None:
+        _set_seed(args.seed)
 
     text = args.text if args.text else Path(args.text_file).read_text(encoding="utf-8")
     config_path = Path(args.config)
