@@ -13,6 +13,12 @@ deepfilternet==0.5.6
 silero-vad
 librosa>=0.10
 soundfile>=0.12
+# Classical Mel-Cepstral Distortion (MCD) on the textbook dB scale. pyworld
+# extracts the spectral envelope, pysptk converts it to a mel-cepstrum. If
+# these are missing, app/core/metrics/mcd.py falls back to a librosa-only
+# approximation (relative scale only).
+pyworld>=0.3
+pysptk>=0.2
 pydub>=0.25
 ffmpeg-python>=0.2
 pedalboard==0.9.12
