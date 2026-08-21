@@ -71,8 +71,13 @@ def main() -> int:
     # If a reference clip is given, drop it into run/ so the metric step finds it.
     if args.reference:
         ref = Path(args.reference)
+        dst = run / "reference_speaker.wav"
         if ref.exists():
-            shutil.copy2(ref, run / "reference_speaker.wav")
+            # Skip the copy when --reference already points at run/reference_speaker.wav
+            # (otherwise shutil.copy2 raises SameFileError on identical src/dst).
+            same = dst.exists() and ref.resolve() == dst.resolve()
+            if not same:
+                shutil.copy2(ref, dst)
             print(f"Референс для SECS/MCD: {ref.name}", flush=True)
 
     phrase_file = out_dir / "_phrase.txt"
