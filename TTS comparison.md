@@ -1,1 +1,1 @@
-[probormotala_s_dosad_checkpoint-12870_ver.wav](https://github.com/user-attachments/files/31325188/probormotala_s_dosad_checkpoint-12870_ver.wav)
+<audio controls src="https://github.com/Nikisin-git/RVC-VITS-speech-synthesis/blob/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-12870_ver.wav">
