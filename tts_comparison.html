@@ -21,6 +21,11 @@
   td audio { height: 34px; vertical-align: middle; }
   tr.best td { background: #e7f6ec; font-weight: 600; }
   tr.best td:first-child::after { content: " ★"; color: #1a7c3a; }
+  .reference { background: #fff7e6; border: 1px solid #f0c675; border-radius: 8px;
+               padding: .7rem .9rem; margin: 0 0 1.25rem;
+               display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+  .reference b { color: #8a5a00; }
+  .reference audio { height: 34px; }
   .note { color: #5a6472; font-size: .85rem; margin-top: 1rem; line-height: 1.5; }
   @media (max-width: 640px) { th, td { padding: .4rem .45rem; font-size: .85rem; } }
 </style>
@@ -28,9 +33,12 @@
 <body>
 <main>
   <p class="phrase">«Пробормотала с досадой Марья Дмитриевна и застучала пальцами по ручке кресел»</p>
-  
-   <p class="highlight">Оригинальная реплика целевого диктора</p><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/reference_speaker.wav"></audio>
-     
+
+  <div class="reference">
+    <b>🎙 Оригинальная реплика целевого диктора (эталон):</b>
+    <audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/reference_speaker.wav"></audio>
+  </div>
+
   <h1>Сравнение чекпоинтов дообучения TTS (mms-tts-rus → Speaker1)</h1>
   <p class="sub">Одна и та же фраза, синтезированная каждым сохранённым чекпоинтом. ★ — лучший по совокупности метрик.</p>
   
