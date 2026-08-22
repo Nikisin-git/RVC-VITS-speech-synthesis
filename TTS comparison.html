@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сравнение чекпоинтов TTS</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; margin: 0; padding: 2rem 1rem;
+         background: #f6f7f9; color: #1c2330; }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+  .sub { color: #5a6472; margin: 0 0 1.25rem; }
+  .phrase { background: #eef2f7; border-left: 4px solid #3f6daa; padding: .6rem .9rem;
+             border-radius: 6px; font-style: italic; margin: 0 0 1.25rem; }
+  table { border-collapse: collapse; width: 100%; background: #fff;
+           border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  th, td { padding: .55rem .7rem; text-align: left; border-bottom: 1px solid #e6e9ee;
+            white-space: nowrap; }
+  th { background: #2c3a4a; color: #fff; font-weight: 600; font-size: .9rem; }
+  td audio { height: 34px; vertical-align: middle; }
+  tr.best td { background: #e7f6ec; font-weight: 600; }
+  tr.best td:first-child::after { content: " ★"; color: #1a7c3a; }
+  .note { color: #5a6472; font-size: .85rem; margin-top: 1rem; line-height: 1.5; }
+  @media (max-width: 640px) { th, td { padding: .4rem .45rem; font-size: .85rem; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Сравнение чекпоинтов дообучения TTS (mms-tts-rus → Speaker1)</h1>
+  <p class="sub">Одна и та же фраза, синтезированная каждым сохранённым чекпоинтом. ★ — лучший по совокупности метрик.</p>
+  <p class="phrase">«Пробормотала с досадой Марья Дмитриевна и застучала пальцами по ручке кресла»</p>
+  <table>
+    <thead>
+      <tr><th>Эпоха</th><th>Чекпоинт</th><th>WER&nbsp;↓</th><th>SECS&nbsp;↑</th><th>MCD&nbsp;↓</th><th>Аудио</th></tr>
+    </thead>
+    <tbody>
+    <tr><td>10</td><td>checkpoint-12870</td><td>0.455</td><td>0.925</td><td>63.4</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-12870_ver.wav"></audio></td></tr>
+    <tr><td>20</td><td>checkpoint-25740</td><td>0.545</td><td>0.927</td><td>56.1</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-25740_ver.wav"></audio></td></tr>
+    <tr><td>30</td><td>checkpoint-38610</td><td>0.545</td><td>0.926</td><td>54.7</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-38610_ver.wav"></audio></td></tr>
+    <tr><td>40</td><td>checkpoint-51480</td><td>0.455</td><td>0.936</td><td>52.6</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-51480_ver.wav"></audio></td></tr>
+    <tr><td>50</td><td>checkpoint-64350</td><td>0.545</td><td>0.925</td><td>53.1</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-64350_ver.wav"></audio></td></tr>
+    <tr><td>60</td><td>checkpoint-77220</td><td>0.727</td><td>0.920</td><td>59.6</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-77220_ver.wav"></audio></td></tr>
+    <tr><td>70</td><td>checkpoint-90090</td><td>0.455</td><td>0.925</td><td>51.0</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-90090_ver.wav"></audio></td></tr>
+    <tr><td>80</td><td>checkpoint-102960</td><td>0.273</td><td>0.915</td><td>58.1</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-102960_ver.wav"></audio></td></tr>
+    <tr><td>90</td><td>checkpoint-115830</td><td>0.455</td><td>0.939</td><td>48.6</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-115830_ver.wav"></audio></td></tr>
+    <tr><td>100</td><td>checkpoint-128700</td><td>0.364</td><td>0.957</td><td>47.4</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-128700_ver.wav"></audio></td></tr>
+    <tr><td>110</td><td>checkpoint-141570</td><td>0.455</td><td>0.934</td><td>48.0</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-141570_ver.wav"></audio></td></tr>
+    <tr><td>120</td><td>checkpoint-154440</td><td>0.545</td><td>0.930</td><td>49.4</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-154440_ver.wav"></audio></td></tr>
+    <tr><td>130</td><td>checkpoint-167310</td><td>0.545</td><td>0.930</td><td>51.9</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-167310_ver.wav"></audio></td></tr>
+    <tr><td>140</td><td>checkpoint-180180</td><td>0.364</td><td>0.936</td><td>48.5</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-180180_ver.wav"></audio></td></tr>
+    <tr><td>150</td><td>checkpoint-193050</td><td>0.545</td><td>0.928</td><td>55.1</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-193050_ver.wav"></audio></td></tr>
+    <tr class="best"><td>160</td><td>checkpoint-205920</td><td>0.273</td><td>0.934</td><td>46.8</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-205920_ver.wav"></audio></td></tr>
+    <tr><td>170</td><td>checkpoint-218790</td><td>0.364</td><td>0.940</td><td>48.7</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-218790_ver.wav"></audio></td></tr>
+    <tr><td>180</td><td>checkpoint-231660</td><td>0.364</td><td>0.922</td><td>49.2</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-231660_ver.wav"></audio></td></tr>
+    <tr><td>190</td><td>checkpoint-244530</td><td>0.636</td><td>0.928</td><td>51.5</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-244530_ver.wav"></audio></td></tr>
+    <tr><td>200</td><td>checkpoint-257400</td><td>—</td><td>—</td><td>—</td><td><audio controls preload="none" src="https://raw.githubusercontent.com/Nikisin-git/RVC-VITS-speech-synthesis/main/Applications/Audiofiles/Text-to-speech/probormotala_s_dosad_checkpoint-257400_ver.wav"></audio></td></tr>
+    </tbody>
+  </table>
+  <p class="note">
+    WER — доля ошибок распознавания (меньше&nbsp;=&nbsp;лучше); SECS — близость тембра к диктору (больше&nbsp;=&nbsp;лучше);
+    MCD — спектральное расстояние (меньше&nbsp;=&nbsp;лучше). Значения MCD в этой таблице получены на относительной
+    librosa-шкале, поэтому их корректно сравнивать только между чекпоинтами, а не с абсолютными порогами.
+    Плееры работают при открытии страницы в браузере (локально или через GitHub&nbsp;Pages); на самой странице
+    github.com отображается только исходный код HTML.
+  </p>
+</main>
+</body>
+</html>
