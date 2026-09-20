@@ -124,12 +124,13 @@ def main() -> int:
         wer = data.get("wer")
         secs = data.get("secs")
         mcd = data.get("mcd")
+        utmos = data.get("utmos")
         outwav = data.get("output", "")
-        print(f"  WER={wer} SECS={secs} MCD={mcd}", flush=True)
+        print(f"  WER={wer} SECS={secs} MCD={mcd} UTMOS={utmos}", flush=True)
         print(f"  аудио: {outwav}", flush=True)
         rows.append({
             "checkpoint": ck.name, "step": step, "epoch": epoch,
-            "wer": wer, "secs": secs, "mcd": mcd, "audio": outwav,
+            "wer": wer, "secs": secs, "mcd": mcd, "utmos": utmos, "audio": outwav,
         })
 
         if not args.keep:
@@ -138,14 +139,14 @@ def main() -> int:
     # CSV report
     report = out_dir / "checkpoints_report.csv"
     with report.open("w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["checkpoint", "step", "epoch", "wer", "secs", "mcd", "audio"])
+        w = csv.DictWriter(f, fieldnames=["checkpoint", "step", "epoch", "wer", "secs", "mcd", "utmos", "audio"])
         w.writeheader()
         w.writerows(rows)
 
     # Sorted summary (lower WER = better; None sinks to the bottom).
     print("\n\n============ ИТОГ (сортировка по WER, меньше = лучше) ============", flush=True)
     ranked = sorted(rows, key=lambda r: (r["wer"] is None, r["wer"] if r["wer"] is not None else 9e9))
-    hdr = f"{'checkpoint':<22}{'эпоха':>7}{'WER':>8}{'SECS':>8}{'MCD':>8}"
+    hdr = f"{'checkpoint':<22}{'эпоха':>7}{'WER':>8}{'SECS':>8}{'MCD':>8}{'UTMOS':>8}"
     print(hdr)
     print("-" * len(hdr))
     for r in ranked:
@@ -153,7 +154,8 @@ def main() -> int:
         wer = f"{r['wer']:.3f}" if r["wer"] is not None else "-"
         secs = f"{r['secs']:.3f}" if r["secs"] is not None else "-"
         mcd = f"{r['mcd']:.1f}" if r["mcd"] is not None else "-"
-        print(f"{r['checkpoint']:<22}{ep:>7}{wer:>8}{secs:>8}{mcd:>8}")
+        utmos = f"{r['utmos']:.2f}" if r.get("utmos") is not None else "-"
+        print(f"{r['checkpoint']:<22}{ep:>7}{wer:>8}{secs:>8}{mcd:>8}{utmos:>8}")
     if ranked and ranked[0]["wer"] is not None:
         print(f"\nЛучший по WER: {ranked[0]['checkpoint']}")
     print(f"\nCSV: {report}", flush=True)

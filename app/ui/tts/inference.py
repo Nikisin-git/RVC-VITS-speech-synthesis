@@ -135,6 +135,7 @@ class TtsInferenceWindow(QWidget):
             wer = data.get("wer")
             secs = data.get("secs")
             mcd = data.get("mcd")
+            utmos = data.get("utmos")
             if wer is not None:
                 parts.append(f"WER: {wer:.3f}")
             elif "wer_error" in data:
@@ -147,6 +148,10 @@ class TtsInferenceWindow(QWidget):
                 parts.append(f"MCD: {mcd:.2f} dB")
             elif "mcd_error" in data:
                 parts.append(f"MCD: {data['mcd_error']}")
+            if utmos is not None:
+                parts.append(f"UTMOS: {utmos:.2f}")
+            elif "utmos_error" in data:
+                parts.append(f"UTMOS: ошибка")
             self._metrics.setText(" | ".join(parts) if parts else "Метрики недоступны.")
             dlg.finish_success()
 

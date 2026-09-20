@@ -56,4 +56,14 @@ def compute_tts_metrics(text: str, out_path: Path, reference_dir: Path,
     else:
         result["mcd_error"] = "reference_speaker.wav not found"
 
+    # UTMOS — reference-free naturalness (MOS). Scores the output on its own,
+    # so no reference_speaker.wav is needed.
+    try:
+        from app.core.metrics.utmos import compute_utmos
+        result["utmos"] = compute_utmos(out_path)
+        print(f"UTMOS: {result['utmos']:.2f} (естественность, ~1..5)", flush=True)
+    except Exception as ue:
+        print(f"WARN: UTMOS failed: {type(ue).__name__}: {ue}", flush=True)
+        result["utmos_error"] = f"{type(ue).__name__}: {ue}"
+
     return result

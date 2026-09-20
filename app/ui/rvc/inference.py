@@ -37,6 +37,11 @@ def _format_metrics(data: dict) -> str:
         parts.append(f"MCD: {mcd:.2f} dB")
     elif "mcd_error" in data:
         parts.append(f"MCD: ошибка ({data['mcd_error']})")
+    utmos = data.get("utmos")
+    if utmos is not None:
+        parts.append(f"UTMOS: {utmos:.2f}")
+    elif "utmos_error" in data:
+        parts.append(f"UTMOS: ошибка")
     return " | ".join(parts) if parts else "Метрики недоступны."
 
 

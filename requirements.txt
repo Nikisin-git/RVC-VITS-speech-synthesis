@@ -19,6 +19,9 @@ soundfile>=0.12
 # approximation (relative scale only).
 pyworld>=0.3
 pysptk>=0.2
+# UTMOS (reference-free naturalness MOS, app/core/metrics/utmos.py) is loaded
+# via torch.hub from tarepan/SpeechMOS — no extra pip package, but the model is
+# downloaded once from GitHub on first use (needs internet that first time).
 pydub>=0.25
 ffmpeg-python>=0.2
 pedalboard==0.9.12

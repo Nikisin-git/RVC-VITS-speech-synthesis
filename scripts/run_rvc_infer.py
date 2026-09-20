@@ -132,6 +132,18 @@ def main() -> int:
                 traceback.print_exc()
                 result["mcd_error"] = f"{type(me).__name__}: {me}"
 
+            # UTMOS: reference-free naturalness (MOS) of the converted output.
+            # Higher is better (~4+ natural); needs no reference clip.
+            try:
+                from app.core.metrics.utmos import compute_utmos
+                result["utmos"] = compute_utmos(out_path)
+                print(f"UTMOS: {result['utmos']:.2f} (естественность, ~1..5)", flush=True)
+            except Exception as ue:
+                import traceback
+                print(f"WARN: UTMOS failed: {type(ue).__name__}: {ue}", flush=True)
+                traceback.print_exc()
+                result["utmos_error"] = f"{type(ue).__name__}: {ue}"
+
         print(f"RESULT_JSON={json.dumps(result, ensure_ascii=False)}", flush=True)
         return 0
     except Exception as e:
