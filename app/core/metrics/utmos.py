@@ -31,8 +31,30 @@ _model = None  # cached predictor (loading it is the expensive part)
 def _get_model():
     global _model
     if _model is None:
+        import os
         import torch
-        _model = torch.hub.load(_HUB_REPO, _HUB_MODEL, trust_repo=True)
+        # Offline route: if VOICEGEN_SPEECHMOS_REPO points at a local clone of
+        # tarepan/SpeechMOS, load the code from there instead of letting
+        # torch.hub download the repo zip from github (which some networks
+        # block). The model weights are still fetched once and cached under
+        # ~/.cache/torch/hub, so a machine that cannot reach github at all
+        # needs that cache copied over from one that can.
+        local_repo = os.environ.get("VOICEGEN_SPEECHMOS_REPO")
+        try:
+            if local_repo and Path(local_repo).is_dir():
+                _model = torch.hub.load(local_repo, _HUB_MODEL,
+                                        source="local", trust_repo=True)
+            else:
+                _model = torch.hub.load(_HUB_REPO, _HUB_MODEL, trust_repo=True)
+        except Exception as e:
+            raise RuntimeError(
+                "Не удалось загрузить модель UTMOS через torch.hub. Обычно это "
+                "разовая загрузка с github.com — проверьте доступ в интернет и "
+                "повторите (после первой успешной загрузки модель кэшируется в "
+                "~/.cache/torch/hub и качаться больше не будет). Для полностью "
+                "офлайн-машины склонируйте github.com/tarepan/SpeechMOS и укажите "
+                f"путь в переменной VOICEGEN_SPEECHMOS_REPO. Исходная ошибка: {e}"
+            ) from e
         _model.eval()
     return _model
 
