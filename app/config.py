@@ -20,6 +20,7 @@ VOCAL_REMOVER_DIR = AUDIO_EDIT_DIR / "Vocal remover"
 DENOISING_DIR = AUDIO_EDIT_DIR / "Denoising"
 UNMUTED_DIR = AUDIO_EDIT_DIR / "Unmuted"
 CUTS_DIR = AUDIO_EDIT_DIR / "Cuts"
+FILTERED_DIR = AUDIO_EDIT_DIR / "Filtered"
 
 TRAINING_DIR = USER_DATA_DIR / "TrainingModel"
 RVC_MODELS_DIR = USER_DATA_DIR / "RVC models"
@@ -56,6 +57,7 @@ def ensure_dirs() -> None:
         UNMUTED_DIR,
         CUTS_DIR / "Single track",
         CUTS_DIR / "Sliced",
+        FILTERED_DIR,
         TRAINING_DIR,
         RVC_MODELS_DIR,
         VITS_DIR / "Assets" / "Weights",

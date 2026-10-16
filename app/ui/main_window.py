@@ -154,6 +154,7 @@ class MainWindow(QMainWindow):
             ("Шумоподавление", self._open_denoiser),
             ("Удаление тихих мест", self._open_silence_remover),
             ("Нарезка на фрагменты", self._open_slicer),
+            ("Удаление слов-паразитов (фильтр фрагментов)", self._open_segment_filter),
         ]:
             btn = QPushButton(label)
             btn.setMinimumHeight(36)
@@ -173,6 +174,10 @@ class MainWindow(QMainWindow):
 
     def _open_slicer(self) -> None:
         self._open(SlicerWindow)
+
+    def _open_segment_filter(self) -> None:
+        from app.ui.preprocessing.segment_filter import SegmentFilterWindow
+        self._open(SegmentFilterWindow)
 
     def _open_rvc_train(self) -> None:
         self._open(RvcTrainWindow, env=self._env)
