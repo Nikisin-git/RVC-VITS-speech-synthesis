@@ -121,8 +121,20 @@ class SlicerWindow(QWidget):
             label = Path(batch[0]).name if len(batch) == 1 else f"{len(batch)} файлов"
             dlg.set_status(f"Обработка: {label}")
             args: list[str] = []
-            for path in batch:
-                args += ["--input", path]
+            if len(batch) > 1:
+                # Pass a long file list via a manifest file, not as hundreds of
+                # --input flags: on Windows the full command line is capped at
+                # ~32k chars, and 500+ long paths silently exceed it (the child
+                # then fails to start). A list file sidesteps that entirely.
+                import tempfile
+                lst = tempfile.NamedTemporaryFile(
+                    mode="w", suffix="_slicer_inputs.txt", delete=False, encoding="utf-8")
+                lst.write("\n".join(str(b) for b in batch))
+                lst.close()
+                args += ["--input-list", lst.name]
+            else:
+                for path in batch:
+                    args += ["--input", path]
             args += [
                 "--format", fmt,
                 "--mode", mode, "--length", str(length),
@@ -141,6 +153,9 @@ class SlicerWindow(QWidget):
                     dlg.finish_error(f"Ошибка, код {code}")
 
             worker.finished.connect(_done)
+            # Surface a failure to even start the child (e.g. command line too
+            # long) instead of leaving the dialog spinning forever.
+            worker.failed.connect(lambda msg: dlg.finish_error(f"Не удалось запустить обработку: {msg}"))
             dlg.cancel_requested.connect(worker.kill)
             self._workers.append(worker)
             worker.start()

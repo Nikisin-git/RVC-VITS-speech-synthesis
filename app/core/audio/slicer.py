@@ -100,20 +100,45 @@ def slice_file(input_paths: Path | list[Path], cfg: SlicerConfig) -> list[Path]:
         return []
 
     if cfg.single_track:
-        audios: list[np.ndarray] = []
-        sr_ref: int | None = None
-        for p in input_paths:
-            audio, sr = load_audio(p, sr=sr_ref, mono=True)
-            if sr_ref is None:
-                sr_ref = sr
-            audios.append(audio)
-        merged = np.concatenate(audios) if len(audios) > 1 else audios[0]
+        import soundfile as sf
+        from app.core.audio.io import _encode_mp3, _replace_ext
+
         out_dir = ensure_dir(CUTS_DIR / "Single track")
-        # Name after the first file; if multiple, append count for clarity.
         stem = input_paths[0].stem
         if len(input_paths) > 1:
             stem = f"{stem}_and_{len(input_paths) - 1}_more"
-        return [save_audio(out_dir / f"{stem} [single]", merged, sr_ref, cfg.output_format)]
+        target = out_dir / f"{stem} [single]"
+        tmp_wav = _replace_ext(target, ".tmp.wav")
+
+        # Stream each input straight into one WAV instead of holding all of them
+        # in RAM — memory stays flat even for hours of audio. Every file is
+        # downmixed to mono and resampled to the first file's rate. Progress is
+        # printed per file so the UI shows live "N / total" and never looks hung.
+        n = len(input_paths)
+        sr_ref: int | None = None
+        writer = None
+        try:
+            for i, p in enumerate(input_paths, 1):
+                audio, sr = load_audio(p, sr=sr_ref, mono=True)
+                if sr_ref is None:
+                    sr_ref = sr
+                    writer = sf.SoundFile(str(tmp_wav), mode="w",
+                                          samplerate=sr_ref, channels=1,
+                                          subtype="PCM_16")
+                writer.write(np.clip(audio, -1.0, 1.0))
+                print(f"Склейка: обработано {i}/{n}", flush=True)
+        finally:
+            if writer is not None:
+                writer.close()
+
+        if cfg.output_format.lower() == "mp3":
+            out_path = _encode_mp3(tmp_wav, _replace_ext(target, ".mp3"))
+            if out_path != tmp_wav:
+                tmp_wav.unlink(missing_ok=True)
+            return [out_path]
+        final = _replace_ext(target, ".wav")
+        tmp_wav.replace(final)
+        return [final]
 
     outputs: list[Path] = []
     out_dir = ensure_dir(CUTS_DIR / "Sliced")
