@@ -14,6 +14,11 @@ RVC voice-conversion output — it scores the clip on its own.
 Implementation: the lightweight SpeechMOS UTMOS22 predictor
 (tarepan/SpeechMOS) loaded via torch.hub — no fairseq dependency. The model is
 downloaded once and cached by torch.hub. It expects 16 kHz mono audio.
+
+Long inputs (e.g. a whole song) are scored in fixed-length chunks and the
+scores averaged weighted by chunk length: the SSL encoder's self-attention is
+O(T^2) in memory, so feeding minutes of audio at once can take gigabytes of RAM
+and freeze the machine. UTMOS was trained on utterance-length clips anyway.
 """
 
 from __future__ import annotations
@@ -24,6 +29,9 @@ from pathlib import Path
 _HUB_REPO = "tarepan/SpeechMOS:v1.2.0"
 _HUB_MODEL = "utmos22_strong"
 _TARGET_SR = 16000
+_CHUNK_SECONDS = 10.0
+# Tail chunks shorter than this are merged into the previous one.
+_MIN_CHUNK_SECONDS = 2.0
 
 _model = None  # cached predictor (loading it is the expensive part)
 
@@ -73,8 +81,23 @@ def compute_utmos(audio_path: Path) -> float:
     if wave is None or len(wave) == 0:
         raise ValueError("пустой аудиофайл — нечего оценивать.")
 
+    wave, _ = librosa.effects.trim(wave, top_db=40)
+    if len(wave) == 0:
+        raise ValueError("аудиофайл содержит только тишину — нечего оценивать.")
+
+    chunk = int(_CHUNK_SECONDS * _TARGET_SR)
+    bounds = list(range(0, len(wave), chunk))
+    if len(bounds) > 1 and len(wave) - bounds[-1] < int(_MIN_CHUNK_SECONDS * _TARGET_SR):
+        bounds.pop()
+    bounds.append(len(wave))
+
     model = _get_model()
-    x = torch.from_numpy(np.ascontiguousarray(wave, dtype="float32")).unsqueeze(0)
+    total, weight = 0.0, 0
     with torch.no_grad():
-        score = model(x, _TARGET_SR)
-    return float(score.squeeze().item())
+        for start, end in zip(bounds[:-1], bounds[1:]):
+            seg = np.ascontiguousarray(wave[start:end], dtype="float32")
+            x = torch.from_numpy(seg).unsqueeze(0)
+            score = float(model(x, _TARGET_SR).squeeze().item())
+            total += score * len(seg)
+            weight += len(seg)
+    return total / weight

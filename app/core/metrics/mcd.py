@@ -32,6 +32,12 @@ Two backends, chosen automatically by `compute_mcd`:
 NOTE: Strict MCD assumes parallel utterances of the same text. When the
 reference and target say different things, DTW still yields a meaningful average
 distance, but the absolute number is inflated (in both backends).
+
+MEMORY: DTW builds full N x M cost/accumulation matrices. With the classical
+backend's 5 ms frames a 3-minute song is ~36k frames, i.e. ~10 GB per matrix —
+enough to push Windows into swap and freeze the whole machine. So each signal is
+trimmed of edge silence and cropped to its first `max_seconds` (default 20 s)
+before feature extraction, and a hard cap on the DTW matrix size is enforced.
 """
 
 from __future__ import annotations
@@ -39,6 +45,35 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+
+# Analysis window per file. 20 s at 5 ms frames = 4000 frames -> ~130 MB per
+# DTW matrix, which is safe on any machine.
+DEFAULT_MAX_SECONDS = 20.0
+# Hard guard on N*M DTW cells (float64): 25M cells ~ 200 MB per matrix.
+_MAX_DTW_CELLS = 25_000_000
+
+
+def _load_cropped(path: Path, sr: int, max_seconds: float | None) -> np.ndarray:
+    """Load mono audio, trim edge silence, keep at most `max_seconds`."""
+    import librosa
+
+    y, _ = librosa.load(str(path), sr=sr, mono=True)
+    if len(y) == 0:
+        raise ValueError("Один из входных файлов пуст — нечего сравнивать.")
+    y, _ = librosa.effects.trim(y, top_db=40)
+    if max_seconds is not None and max_seconds > 0:
+        y = y[: int(max_seconds * sr)]
+    if len(y) == 0:
+        raise ValueError("Один из входных файлов содержит только тишину.")
+    return y
+
+
+def _check_dtw_size(n: int, m: int) -> None:
+    if n * m > _MAX_DTW_CELLS:
+        raise MemoryError(
+            f"DTW {n}x{m} кадров потребовал бы ~{n * m * 8 / 1e9:.1f} ГБ на матрицу — "
+            f"уменьшите max_seconds."
+        )
 
 
 def compute_mcd(
@@ -48,8 +83,12 @@ def compute_mcd(
     n_mfcc: int = 13,
     n_fft: int = 1024,
     hop_length: int = 256,
+    max_seconds: float | None = DEFAULT_MAX_SECONDS,
 ) -> float:
     """Compute MCD in dB between two audio files. Lower is better.
+
+    Only the first `max_seconds` of each file (after trimming edge silence) are
+    analysed, so DTW memory stays bounded on long inputs such as full songs.
 
     Uses the classical pyworld+pysptk pipeline (textbook dB scale) when those
     packages are available, and only falls back to the librosa-MFCC
@@ -58,10 +97,12 @@ def compute_mcd(
     so a run never mixes the two scales.
     """
     try:
-        return _compute_mcd_classical(reference_audio, target_audio, sr)
+        return _compute_mcd_classical(
+            reference_audio, target_audio, sr, max_seconds=max_seconds)
     except ImportError:
         return _compute_mcd_librosa(
-            reference_audio, target_audio, sr, n_mfcc, n_fft, hop_length)
+            reference_audio, target_audio, sr, n_mfcc, n_fft, hop_length,
+            max_seconds=max_seconds)
 
 
 def _compute_mcd_classical(
@@ -70,6 +111,7 @@ def _compute_mcd_classical(
     sr: int = 22050,
     order: int = 24,
     frame_period: float = 5.0,
+    max_seconds: float | None = DEFAULT_MAX_SECONDS,
 ) -> float:
     """Classical MCD via pyworld spectral envelope + pysptk mel-cepstrum.
 
@@ -85,9 +127,7 @@ def _compute_mcd_classical(
     alpha = pysptk.util.mcepalpha(sr)
 
     def _mel_cepstrum(path: Path) -> np.ndarray:
-        y, _ = librosa.load(str(path), sr=sr, mono=True)
-        if len(y) == 0:
-            raise ValueError("Один из входных файлов пуст — нечего сравнивать.")
+        y = _load_cropped(path, sr, max_seconds)
         # pyworld needs C-contiguous float64.
         y = np.ascontiguousarray(y, dtype=np.float64)
         f0, t = pyworld.harvest(y, sr, frame_period=frame_period)
@@ -99,6 +139,7 @@ def _compute_mcd_classical(
     if mc_ref.shape[0] == 0 or mc_syn.shape[0] == 0:
         raise ValueError("Не удалось извлечь мел-кепстр — слишком короткое аудио.")
 
+    _check_dtw_size(mc_ref.shape[0], mc_syn.shape[0])
     # DTW over the mel-cepstral sequences (librosa expects features x time).
     _, wp = librosa.sequence.dtw(X=mc_ref.T, Y=mc_syn.T, metric="euclidean")
     diff = mc_ref[wp[:, 0]] - mc_syn[wp[:, 1]]
@@ -113,6 +154,7 @@ def _compute_mcd_librosa(
     n_mfcc: int = 13,
     n_fft: int = 1024,
     hop_length: int = 256,
+    max_seconds: float | None = DEFAULT_MAX_SECONDS,
 ) -> float:
     """Dependency-free fallback MCD from librosa MFCCs.
 
@@ -122,11 +164,8 @@ def _compute_mcd_librosa(
     """
     import librosa
 
-    y_ref, _ = librosa.load(str(reference_audio), sr=sr, mono=True)
-    y_syn, _ = librosa.load(str(target_audio), sr=sr, mono=True)
-
-    if len(y_ref) == 0 or len(y_syn) == 0:
-        raise ValueError("Один из входных файлов пуст — нечего сравнивать.")
+    y_ref = _load_cropped(reference_audio, sr, max_seconds)
+    y_syn = _load_cropped(target_audio, sr, max_seconds)
 
     # n_mfcc+1 so we can drop c0 (energy) — energy is usually excluded from
     # MCD because it depends on recording level, not on spectral shape.
@@ -145,6 +184,7 @@ def _compute_mcd_librosa(
     mfcc_ref = mfcc_ref - mfcc_ref.mean(axis=1, keepdims=True)
     mfcc_syn = mfcc_syn - mfcc_syn.mean(axis=1, keepdims=True)
 
+    _check_dtw_size(mfcc_ref.shape[1], mfcc_syn.shape[1])
     # DTW alignment: returns a warping path of (i, j) frame pairs.
     _, wp = librosa.sequence.dtw(X=mfcc_ref, Y=mfcc_syn, metric="euclidean")
     if len(wp) == 0:
