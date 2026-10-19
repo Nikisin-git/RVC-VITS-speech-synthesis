@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,16 @@ from app.config import VOCAL_REMOVER_DIR
 from app.core.audio.io import ensure_dir, load_audio, save_audio
 
 MODEL = "htdemucs_ft"
+
+
+def _safe_stem(name: str) -> str:
+    """A filename stem Windows can use as a folder name. Demucs creates an
+    output folder named after the input stem, and Windows forbids reserved
+    characters and silently strips trailing dots/spaces — so a file like
+    'track....mp3' breaks the save. Sanitize those away."""
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name)
+    name = name.rstrip(" .").strip()
+    return name or "input"
 
 
 def separate(input_path: Path, output_format: str = "wav") -> tuple[Path, Path]:
@@ -29,18 +40,25 @@ def separate(input_path: Path, output_format: str = "wav") -> tuple[Path, Path]:
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_out = Path(tmpdir) / "demucs_out"
+        # Demucs names its output folder after the input file's stem and writes
+        # <stem>/vocals.wav. A stem with trailing dots/spaces or reserved chars
+        # (e.g. "track....mp3") can't be created as a folder on Windows, so the
+        # save crashes. Hand Demucs a sanitized copy and keep the clean name.
+        stem = _safe_stem(input_path.stem)
+        safe_input = Path(tmpdir) / f"{stem}{input_path.suffix}"
+        shutil.copy2(input_path, safe_input)
+
         cmd = [
             sys.executable, "-m", "demucs.separate",
             "-n", MODEL,
             "--two-stems=vocals",
             "-o", str(tmp_out),
-            str(input_path),
+            str(safe_input),
         ]
         print(f"[demucs] running: {' '.join(cmd)}", flush=True)
         subprocess.run(cmd, check=True)
 
         # Demucs writes to <out>/<model>/<track_stem>/{vocals,no_vocals}.wav
-        stem = input_path.stem
         produced = tmp_out / MODEL / stem
         vocals_src = produced / "vocals.wav"
         music_src = produced / "no_vocals.wav"
@@ -58,6 +76,7 @@ def separate(input_path: Path, output_format: str = "wav") -> tuple[Path, Path]:
 
 def cleanup_partial(stem: str) -> None:
     """Remove half-written outputs (used on cancellation)."""
+    stem = _safe_stem(stem)
     for sub in ("vocals", "music"):
         d = VOCAL_REMOVER_DIR / sub
         if not d.exists():
